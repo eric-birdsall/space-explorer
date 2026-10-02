@@ -117,8 +117,7 @@
   }
   requestAnimationFrame(refresh);
 
-  // ---------- Secret: tap the astronaut three times quickly (same as the F key) ----------
-  let secretTaps = [];
+  // ---------- Secret: tap the astronaut (same as the F key) ----------
   canvas.addEventListener('pointerdown', e => {
     const S = G.Game.S;
     if (S.screen !== 'play') return;
@@ -128,12 +127,6 @@
     const pv = G.Game.playerPos();
     const TS = G.Game.TS;
     const slop = TS * 0.4;
-    const onPlayer = x > pv.x * TS - slop && x < (pv.x + 1) * TS + slop && y > pv.y * TS - slop && y < (pv.y + 1) * TS + slop;
-    const now = performance.now();
-    secretTaps = onPlayer ? secretTaps.filter(t => now - t < 1200).concat(now) : [];
-    if (secretTaps.length >= 3) {
-      secretTaps = [];
-      G.Game.fart();
-    }
+    if (x > pv.x * TS - slop && x < (pv.x + 1) * TS + slop && y > pv.y * TS - slop && y < (pv.y + 1) * TS + slop) G.Game.fart();
   });
 })(window.Game = window.Game || {});
