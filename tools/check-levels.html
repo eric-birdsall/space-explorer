@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Level Checker</title>
+  <style>
+    body { font-family: ui-monospace, Menlo, monospace; background: #0b0d1f; color: #e6e9f5; padding: 24px; }
+    .ok { color: #2ed573; }
+    .warn { color: #ffd32a; }
+    .bad { color: #ff4757; }
+    pre { background: #161a2e; padding: 8px 12px; border-radius: 6px; display: inline-block; }
+    h2 { margin-top: 40px; color: #4fe3ff; }
+  </style>
+</head>
+<body>
+  <h1>Level checker</h1>
+  <p>Checks every level with the real game rules (moving obstacles and blinking lasers are ignored, because they
+    only delay the player). For each level it reports whether the rocket can be reached, and how many reachable
+    positions are <b>dead ends</b>: states from which the rocket can no longer be reached without restarting.
+    The game pulses the restart button when that happens, so a few are fine in harder levels.</p>
+  <div id="out"></div>
+
+  <script src="../js/levels.js"></script>
+  <script src="../js/rules.js"></script>
+  <script>
+    const out = document.getElementById('out');
+    const R = Game.Rules;
+
+    // Build the whole reachable state graph once, then walk backwards from winning moves.
+    function analyse(level) {
+      const s0 = R.parse(level);
+      const ids = new Map([[R.stateKey(s0), 0]]);
+      const worlds = [s0];
+      const rev = [[]];
+      const good = [];
+      for (let i = 0; i < worlds.length; i++) {
+        const w = worlds[i];
+        for (const { w: n, res } of R.successors(w)) {   // moves and mirror turns
+          if (res.events.some(e => e.type === 'exit')) { good[i] = true; continue; }
+          const k = R.stateKey(n);
+          let id = ids.get(k);
+          if (id === undefined) {
+            if (worlds.length > 500000) return { states: worlds.length, capped: true };
+            id = worlds.length; ids.set(k, id); worlds.push(n); rev.push([]);
+          }
+          rev[id].push(i);
+        }
+        worlds[i] = null;
+      }
+      const queue = [];
+      good.forEach((g, i) => { if (g) queue.push(i); });
+      while (queue.length) {
+        const j = queue.pop();
+        for (const p of rev[j]) if (!good[p]) { good[p] = true; queue.push(p); }
+      }
+      let dead = 0;
+      for (let i = 0; i < worlds.length; i++) if (!good[i]) dead++;
+      return { states: worlds.length, solvable: !!good[0], dead };
+    }
+
+    let i = 0;
+    function next() {
+      if (i >= Game.Levels.length) return;
+      const level = Game.Levels[i];
+      if (i % 10 === 0) out.insertAdjacentHTML('beforeend', `<h2>World ${i / 10 + 1}: ${Game.WorldNames[i / 10] || ''}</h2>`);
+      let html;
+      try {
+        const r = analyse(level);
+        if (r.capped) html = `<span class="warn">? too many states to check (${r.states}+)</span>`;
+        else if (!r.solvable) html = '<span class="bad">✘ NOT solvable</span>';
+        else html = `<span class="ok">✔ solvable</span> (${r.states} states) · ` +
+          (r.dead ? `<span class="warn">${r.dead} dead-end states</span>` : '<span class="ok">no dead ends</span>');
+      } catch (e) {
+        html = `<span class="bad">✘ error: ${e.message}</span>`;
+      }
+      out.insertAdjacentHTML('beforeend', `<h3>${i + 1}. ${level.id}: ${html}</h3><pre>${level.map.join('\n')}</pre>`);
+      i++;
+      setTimeout(next, 0); // keep the page responsive while checking
+    }
+    next();
+  </script>
+</body>
+</html>

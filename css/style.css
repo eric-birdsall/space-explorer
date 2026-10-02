@@ -1,0 +1,168 @@
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #070916;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game {
+  /* Keep the 3:2 aspect ratio and fill as much of the window as possible */
+  width: min(100vw, 150vh);
+  height: min(100vh, 66.667vw);
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  border-radius: 12px;
+  box-shadow: 0 0 60px rgba(90, 140, 255, 0.25);
+  cursor: default;
+}
+
+/* ---------- Touch screens (iPad, phones) ----------
+   js/touch.js adds the "touch" class. The game shrinks a little to leave a gutter for the
+   on-screen arrows, so they never cover the level: on the right in landscape, below in portrait. */
+#controls {
+  display: none;
+}
+
+html.touch,
+html.touch body {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html.touch body {
+  --vh: 100vh;
+  --gutter: clamp(170px, 20vw, 240px);
+  --safe-x: calc(env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px));
+  --safe-y: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+@supports (height: 100dvh) {
+  html.touch body {
+    --vh: 100dvh; /* the part of the screen Safari's toolbars leave free */
+  }
+}
+
+html.touch #game {
+  --room: calc(100vw - var(--gutter) - var(--safe-x));
+  width: min(var(--room), calc((var(--vh) - var(--safe-y)) * 1.5));
+  height: auto;
+  aspect-ratio: 3 / 2;
+  flex: none;
+  touch-action: none;
+}
+
+html.touch #controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--gutter) * 0.14);
+  width: var(--gutter);
+  flex: none;
+  touch-action: none;
+}
+
+#dpad {
+  position: relative;
+  width: calc(var(--gutter) - 20px);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 5%;
+  touch-action: none;
+}
+
+/* A chunky keyboard-style key with a dark arrow, like the ones on the title screen. */
+.arrow {
+  position: relative;
+  border-radius: 22%;
+  background: #f4f6ff;
+  box-shadow: 0 6px 0 #8a93ad;
+  pointer-events: none; /* #dpad handles the touches, so a thumb can slide between arrows */
+}
+
+.arrow::after {
+  content: '';
+  position: absolute;
+  inset: 26%;
+  background: #161a2e;
+  clip-path: polygon(50% 8%, 96% 86%, 4% 86%);
+}
+
+.arrow[data-key='ArrowUp'] { grid-area: 1 / 2; }
+.arrow[data-key='ArrowLeft'] { grid-area: 2 / 1; }
+.arrow[data-key='ArrowRight'] { grid-area: 2 / 3; }
+.arrow[data-key='ArrowDown'] { grid-area: 3 / 2; }
+.arrow[data-key='ArrowLeft']::after { transform: rotate(-90deg); }
+.arrow[data-key='ArrowRight']::after { transform: rotate(90deg); }
+.arrow[data-key='ArrowDown']::after { transform: rotate(180deg); }
+
+.arrow.down {
+  background: #ffd32a;
+  box-shadow: 0 2px 0 #c49a00;
+  transform: translateY(4px);
+}
+
+/* Round action button: "go" on the menus, "turn the mirror" next to a mirror. */
+#action {
+  width: calc(var(--gutter) * 0.46);
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #ffd32a;
+  box-shadow: 0 6px 0 #c49a00;
+  color: #161a2e;
+  touch-action: none;
+  visibility: hidden; /* keeps its space, so the arrows never jump around */
+}
+
+#action.show {
+  visibility: visible;
+}
+
+#action.down {
+  box-shadow: 0 2px 0 #c49a00;
+  transform: translateY(4px);
+}
+
+#action svg {
+  width: 60%;
+  height: 60%;
+  display: block;
+  margin: auto;
+  pointer-events: none;
+}
+
+@media (orientation: portrait) {
+  html.touch body {
+    flex-direction: column;
+    --gutter: clamp(170px, 42vw, 300px);
+  }
+
+  html.touch #game {
+    width: min(calc(100vw - var(--safe-x)), calc((var(--vh) - var(--safe-y) - var(--gutter) - 24px) * 1.5));
+  }
+
+  html.touch #controls {
+    flex: 1;
+    flex-direction: row;
+    justify-content: space-evenly;
+    width: 100%;
+  }
+}

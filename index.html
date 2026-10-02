@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Space Explorer</title>
+  <!-- Home-screen app on iPad / phones: full screen, own icon, works offline (see sw.js) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Space Explorer">
+  <meta name="theme-color" content="#070916">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-180.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <canvas id="game" width="960" height="640"></canvas>
+
+  <!-- Touch controls: only shown on touch screens (see css/style.css and js/touch.js) -->
+  <div id="controls" aria-hidden="true">
+    <button id="action" type="button"></button>
+    <div id="dpad">
+      <div class="arrow" data-key="ArrowUp"></div>
+      <div class="arrow" data-key="ArrowLeft"></div>
+      <div class="arrow" data-key="ArrowRight"></div>
+      <div class="arrow" data-key="ArrowDown"></div>
+    </div>
+  </div>
+
+  <!-- Classic scripts (not ES modules) so the game runs straight from file:// -->
+  <script src="js/sprites.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/touch.js"></script>
+  <script>
+    // Offline support. Only on a web address: double-clicking index.html (file://) needs none.
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>

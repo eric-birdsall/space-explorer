@@ -1,0 +1,15 @@
+{
+  "name": "Space Explorer",
+  "short_name": "Space Explorer",
+  "description": "A gentle top-down space puzzle game for small kids.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#070916",
+  "theme_color": "#070916",
+  "icons": [
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
