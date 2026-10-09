@@ -12,7 +12,7 @@
 //   *  crumbly floor (becomes a hole after you step off it)
 //   s  color switch    m c  pink / blue blocks (pink start up; the switch swaps them)
 //   L  big lever (switches off `switch` lasers and obstacles; can reverse belts)
-//   M W  mirrors ( / and \ ) - bump one to turn it      q  crystal
+//   M W  mirrors ( / and \ ) - press Space next to one to turn it      q  crystal
 //   a  friendly alien (moves aside for a fruit)          f  space fruit     h  shield helmet
 //   O  black hole (can't be entered; tugs you one tile closer from two tiles away)
 // Obstacles: 'asteroid' / 'robot' / 'ufo' ping-pong along a `path` (tiles per second; a UFO
