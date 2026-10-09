@@ -11,6 +11,7 @@
     if (e.repeat) return;
     const k = e.key.toLowerCase();
     if (k === 'm') G.Audio.toggleMute();
+    else if (k === 'r' && e.shiftKey) G.Game.restartFull(); // parent shortcut: forget the checkpoint too
     else if (k === 'r') G.Game.restart();
     else if (k === 'enter' || k === ' ') G.Game.confirm();
     else if (k === 'escape') G.Game.home();

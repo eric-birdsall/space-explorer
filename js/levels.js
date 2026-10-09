@@ -12,6 +12,10 @@
 //   *  crumbly floor (becomes a hole after you step off it)
 //   s  color switch    m c  pink / blue blocks (pink start up; the switch swaps them)
 //   L  big lever (switches off `switch` lasers and obstacles; can reverse belts)
+//   x  gem             X  counting door (opens when you carry enough gems, and uses them up;
+//                         the counts are listed in `gemDoors`, in reading order)
+//   t  flashlight (lights up much more of a `dark: true` level)
+//   S  checkpoint beacon (big levels: restart returns here with everything collected so far)
 //   M W  mirrors ( / and \ ) - press Space next to one to turn it      q  crystal
 //   a  friendly alien (moves aside for a fruit)          f  space fruit     h  shield helmet
 //   O  black hole (can't be entered; tugs you one tile closer from two tiles away)
@@ -24,8 +28,10 @@
 // block the way like a wall. A crate pushed into a beam blocks it.
 // Optional hints: `holdTimer` (a crate should sit on the timer button) and `crateSpots`
 // (where a crate should be pushed, e.g. to make a stopper on ice).
+// `dark: true` hides everything except a circle around the player, the goal and anything moving.
 // Each level has a stable `id` so saved progress survives levels being reordered.
-// Every 10 levels form a world with its own look; the names are in Game.WorldNames.
+// Every 10 levels form a world with its own look (see WORLD_SIZES at the bottom for exceptions);
+// the names are in Game.WorldNames.
 (function (G) {
   G.WorldNames = [
     'Space Station',
@@ -38,6 +44,10 @@
     'Crystal Caves',
     'Sun Station',
     'Black Hole Rim',
+    'Dark Moon',
+    'Gem Galaxy',
+    'The Last Star',
+    'Expeditions',
   ];
 
   G.Levels = [
@@ -2111,5 +2121,573 @@
         { from: [12, 7], dir: 'down', always: true },
       ],
     },
+    // ===== World 11: Dark Moon =====
+
+    // 101. Gems! The door shows two dots: bring it two gems.
+    {
+      id: 'gem-intro',
+      gemDoors: [2],
+      map: [
+        '###############',
+        '#......#......#',
+        '#.P....#......#',
+        '#......#......#',
+        '#...x..X....E.#',
+        '#......#......#',
+        '#..x...#......#',
+        '#......#......#',
+        '###############',
+        '###############',
+      ],
+    },
+
+    // 102. Three dots, three gems, tucked into three corners.
+    {
+      id: 'gem-three',
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#x....#.......#',
+        '#.....#.......#',
+        '#.....#.......#',
+        '#.P...X.....E.#',
+        '#.....#.......#',
+        '#.....#########',
+        '#x...........x#',
+        '#.............#',
+        '###############',
+      ],
+    },
+
+    // 103. Two counting doors: the first wants two gems, the second wants three.
+    {
+      id: 'gem-two-doors',
+      gemDoors: [2, 3],
+      map: [
+        '###############',
+        '#....#....#...#',
+        '#.x..#.x..#...#',
+        '#....#....#...#',
+        '#.P..X..x.X.E.#',
+        '#....#....#...#',
+        '#.x..#.x..#...#',
+        '#....#....#...#',
+        '###############',
+        '###############',
+      ],
+    },
+
+    // 104. Four gems, but the door only wants three. Leave the one the robot is guarding.
+    {
+      id: 'gem-enough',
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#.............#',
+        '#.x.........x.#',
+        '#.............#',
+        '#.P....x......#',
+        '#.............#',
+        '#.x...........#',
+        '#######X#######',
+        '#......E......#',
+        '###############',
+      ],
+      obstacles: [
+        { sprite: 'robot', path: [[9, 2], [13, 2]], speed: 1.3 },
+      ],
+    },
+
+    // 105. Lights out! You can only see a little way. Follow the glow to the rocket.
+    {
+      id: 'dark-intro',
+      dark: true,
+      map: [
+        '###############',
+        '#.....#.......#',
+        '#.P...#...#...#',
+        '#.....#...#...#',
+        '#.....#...#...#',
+        '###.###...#...#',
+        '#.........#...#',
+        '#.........#.E.#',
+        '#.........#...#',
+        '###############',
+      ],
+    },
+
+    // 106. Pick up the flashlight to see much further, then find the key in the dark maze.
+    {
+      id: 'dark-flashlight',
+      dark: true,
+      map: [
+        '###############',
+        '#.....#...#...#',
+        '#.P.t.#.#.#.r.#',
+        '#.....#.#...#.#',
+        '###.###.#####.#',
+        '#.......#.....#',
+        '#.#####.#.###R#',
+        '#.....#...#...#',
+        '#.....#####..E#',
+        '###############',
+      ],
+    },
+
+    // 107. Three gems hidden in the dark. The flashlight helps you spot them.
+    {
+      id: 'dark-gems',
+      dark: true,
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#.....x#......#',
+        '#.P....#...x..#',
+        '#......#......#',
+        '#..t..........#',
+        '#......#......#',
+        '####.#####X####',
+        '#x.....#......#',
+        '#......#....E.#',
+        '###############',
+      ],
+    },
+
+    // 108. Gems on the ice: a gem stops your slide. Then slide down to the door.
+    {
+      id: 'gem-ice',
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#P....~~~~~~x.#',
+        '#.....~~~~~~~.#',
+        '#.....~~#~~~~.#',
+        '#.....x~~~~~~.#',
+        '#.....~~~~~#~.#',
+        '#.....~~~~~~x.#',
+        '#######X#######',
+        '#......E......#',
+        '###############',
+      ],
+    },
+
+    // 109. Four gems in the dark, with a robot and an asteroid about. Their lights give them away.
+    {
+      id: 'dark-gem-robots',
+      dark: true,
+      gemDoors: [4],
+      map: [
+        '###############',
+        '#x.....#.....x#',
+        '#......#......#',
+        '#..P..........#',
+        '#......#......#',
+        '#......#..t...#',
+        '###.###########',
+        '#....x.X......#',
+        '#x.....#.....E#',
+        '###############',
+      ],
+      obstacles: [
+        { sprite: 'robot', path: [[8, 2], [13, 2]], speed: 1.2 },
+        { sprite: 'asteroid', path: [[2, 8], [6, 8]], speed: 1.1 },
+      ],
+    },
+
+    // 110. Big dark level: flashlight, two gems for the first door, a red key, and three more
+    //      gems for the door to the rocket.
+    {
+      id: 'dark-moon-finale',
+      dark: true,
+      gemDoors: [2, 3],
+      map: [
+        '############################',
+        '#.....#......#......#......#',
+        '#.P...#..x...#...x..#..x...#',
+        '#.....#......#......#......#',
+        '#..t.........X......#......#',
+        '#.....#......#......R......#',
+        '###.######.#####.######X####',
+        '#.....#......#......#......#',
+        '#.x...#...r..#..x...#....E.#',
+        '#.....#......#......#......#',
+        '#.....#......#......#......#',
+        '############################',
+      ],
+      obstacles: [
+        { sprite: 'robot', path: [[14, 3], [19, 3]], speed: 1.2 },
+        { sprite: 'asteroid', path: [[21, 9], [26, 9]], speed: 1.2 },
+      ],
+    },
+    // ===== World 12: Gem Galaxy =====
+
+    // 111. One gem is behind a gate: push the crate down its slot onto the button to get to it.
+    {
+      id: 'gem-crate',
+      gemDoors: [2],
+      map: [
+        '###############',
+        '#......#......#',
+        '#.P....=..x...#',
+        '#......#......#',
+        '###C#.#########',
+        '###+#.##......#',
+        '#..#...X....E.#',
+        '#.x....#......#',
+        '###############',
+        '###############',
+      ],
+    },
+
+    // 112. Three gems in three closed rooms. The portals are the only way in.
+    {
+      id: 'gem-portals',
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#...#.....#...#',
+        '#.x.#..P..#.x.#',
+        '#.1.#.1.2.#.2.#',
+        '#####.....#####',
+        '#...#..3..#...#',
+        '#.x.#.....X.E.#',
+        '#.3.#.....#...#',
+        '###############',
+        '###############',
+      ],
+    },
+
+    // 113. Ride the belt to the far gem and the other belt back, past an asteroid.
+    {
+      id: 'gem-belts',
+      gemDoors: [2],
+      map: [
+        '###############',
+        '#.....#.......#',
+        '#.P...>>>..x..#',
+        '#.....#.......#',
+        '#.x...<<<.....#',
+        '#.....#.......#',
+        '###X###########',
+        '#.............#',
+        '#......E......#',
+        '###############',
+      ],
+      obstacles: [
+        { sprite: 'asteroid', path: [[12, 1], [12, 5]], speed: 1.3 },
+      ],
+    },
+
+    // 114. One gem behind the pink wall, one behind the blue. The switch swaps them.
+    {
+      id: 'gem-colors',
+      gemDoors: [2],
+      map: [
+        '###############',
+        '#.....m...x..##',
+        '#.P...m......##',
+        '#..s..#########',
+        '#.....c...x..##',
+        '#.....c......##',
+        '####X##########',
+        '#.............#',
+        '#...E.........#',
+        '###############',
+      ],
+    },
+
+    // 115. A frozen lake in the dark. Take the flashlight, slide to the key, then slide to the door.
+    {
+      id: 'dark-ice',
+      dark: true,
+      map: [
+        '###############',
+        '#P.t..~~~~~~~.#',
+        '#.....~~~#~~~.#',
+        '#.....~~~~~~~.#',
+        '#.....~#~~~~~.#',
+        '#.....~~~~~~r.#',
+        '#.....~~~~#~~.#',
+        '#########R#####',
+        '#########E#####',
+        '###############',
+      ],
+    },
+
+    // 116. Three gems around the pillars, and a chasing robot that wants to play tag.
+    {
+      id: 'gem-chaser',
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#x.....#.....x#',
+        '#..##.....##..#',
+        '#.P...........#',
+        '#..##.....##..#',
+        '#x............#',
+        '#######X#######',
+        '#......E......#',
+        '###############',
+        '###############',
+      ],
+      obstacles: [
+        { sprite: 'chaser', start: [12, 5], speed: 1.1, delay: 3 },
+      ],
+    },
+
+    // 117. A laser glows in the dark. Turn the mirror to send it up into the crystal.
+    {
+      id: 'dark-mirror',
+      dark: true,
+      map: [
+        '###############',
+        '#######q#######',
+        '#######.......#',
+        '#######..t..P.#',
+        '#######.......#',
+        '#......W......#',
+        '#######.......#',
+        '##########=####',
+        '#..........E..#',
+        '###############',
+      ],
+      lasers: [
+        { from: [0, 5], dir: 'right', always: true },
+      ],
+    },
+
+    // 118. Gem islands: jump over on one, come back over the other.
+    {
+      id: 'gem-islands',
+      gemDoors: [2],
+      map: [
+        '###############',
+        '#.....____....#',
+        '#.P..J_xJ_....#',
+        '#.....____....#',
+        '#.....____....#',
+        '#....._Jx_J...#',
+        '#.....____....#',
+        '###X###########',
+        '#..E..........#',
+        '###############',
+      ],
+    },
+
+    // 119. Press the timer and dash for the gem. There's another button inside to get back out.
+    {
+      id: 'gem-timer',
+      timer: 14,
+      gemDoors: [2],
+      map: [
+        '###############',
+        '#......#......#',
+        '#.P....D..x...#',
+        '#......#......#',
+        '#..d...#....d.#',
+        '#......########',
+        '#......X....E.#',
+        '#.x....#......#',
+        '###############',
+        '###############',
+      ],
+    },
+
+    // 120. Big level: three gems for the first door, then across the ice for two more.
+    {
+      id: 'gem-galaxy-finale',
+      gemDoors: [3, 2],
+      map: [
+        '############################',
+        '#.....#......#.~~~~~#......#',
+        '#.P...#..x...#.~~~~x#..x...#',
+        '#.....#......#.~~#~~#......#',
+        '#............X.~~~~~.......#',
+        '#.....#......#.~~~~~#......#',
+        '###.######.############X####',
+        '#.....#......########......#',
+        '#.x...#...x..########....E.#',
+        '#.....#......########......#',
+        '#.....#......########......#',
+        '############################',
+      ],
+      obstacles: [
+        { sprite: 'robot', path: [[7, 9], [12, 9]], speed: 1.2 },
+        { sprite: 'ufo', path: [[21, 4], [26, 4]], speed: 1.2, pause: 1.5 },
+      ],
+    },
+
+    // ===== World 13: The Last Star =====
+
+    // 121. A laser wall glowing in the dark. Push the crate down the tunnel into the beam and
+    //      cross in its shadow.
+    {
+      id: 'dark-laser-crate',
+      dark: true,
+      map: [
+        '###############',
+        '#...####......#',
+        '#.P.####......#',
+        '#..tC.........#',
+        '#...####......#',
+        '#...####......#',
+        '#...####....E.#',
+        '###############',
+        '###############',
+        '###############',
+      ],
+      lasers: [
+        { tiles: [[9, 1], [9, 2], [9, 3], [9, 4], [9, 5], [9, 6]], always: true },
+      ],
+    },
+
+    // 122. Fruit for the alien who guards two gems, and a lever for the laser that guards the third.
+    {
+      id: 'gem-alien-lever',
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#.....#..x..x.#',
+        '#.P.f.a.......#',
+        '#.....#########',
+        '#.............#',
+        '#..L........x.#',
+        '#.............#',
+        '###X###########',
+        '#..E..........#',
+        '###############',
+      ],
+      lasers: [
+        { tiles: [[9, 4], [9, 5], [9, 6]], always: true, switch: true },
+      ],
+    },
+
+    // 123. Three gems in the dark with a chasing robot. Its light shows where it is.
+    {
+      id: 'dark-chaser',
+      dark: true,
+      gemDoors: [3],
+      map: [
+        '###############',
+        '#x...........x#',
+        '#..##.....##..#',
+        '#.P....t......#',
+        '#..##.....##..#',
+        '#......x......#',
+        '#######X#######',
+        '#......E......#',
+        '###############',
+        '###############',
+      ],
+      obstacles: [
+        { sprite: 'chaser', start: [12, 5], speed: 1, delay: 4 },
+      ],
+    },
+
+    // 124. Four gems, two black holes tugging at you, and a comet bouncing about.
+    {
+      id: 'gem-black-holes',
+      gemDoors: [4],
+      map: [
+        '###############',
+        '#.............#',
+        '#.P..x..O..x..#',
+        '#.............#',
+        '#.............#',
+        '#..x..O.....x.#',
+        '#.............#',
+        '#######X#######',
+        '#......E......#',
+        '###############',
+      ],
+      obstacles: [
+        { sprite: 'comet', start: [10, 4], dir: [1, 1], speed: 2 },
+      ],
+    },
+
+    // 125. The last star: dark, flashlight, a crate for the button gate, three gems for the first
+    //      door, portals across, and two more gems for the door to the rocket.
+    {
+      id: 'last-star-125',
+      dark: true,
+      gemDoors: [3, 2],
+      map: [
+        '############################',
+        '#.....#......#......#......#',
+        '#.P...#..x...#..x...#...x..#',
+        '#..t..#......#......#......#',
+        '#.....=......X......#......#',
+        '#.....#......#...1..#..2...#',
+        '###C#.####.#############X###',
+        '###+#.#......#......#......#',
+        '#..#..#...x..#..2...#...E..#',
+        '#.....#......#......#......#',
+        '#.x...#......#..1...#......#',
+        '############################',
+      ],
+      obstacles: [
+        { sprite: 'robot', path: [[7, 3], [12, 3]], speed: 1.2 },
+        { sprite: 'asteroid', path: [[21, 9], [26, 9]], speed: 1.2 },
+      ],
+    },
+    // ===== World 14: Expeditions =====
+    // Big levels with several jobs to do. Each wing off the hub hides one gem, and the rocket
+    // waits behind a counting door. Green beacons are checkpoints.
+
+    // 126. Three wings, three gems: slide across the frozen lake, feed the alien, and turn the
+    //      mirror to light the crystal. Do them in any order.
+    {
+      id: 'expedition-1',
+      gemDoors: [3],
+      map: [
+        '#############################################',
+        '################...........##################',
+        '################.f.........##################',
+        '################...........ax################',
+        '################...........##################',
+        '################...........##################',
+        '######################.######################',
+        '###~~~~~~~~~.#########.######################',
+        '###~~~~~~~~~.#########.######################',
+        '###x~~~#~~~~.####...........#################',
+        '###~~~~~~~~~.####.....S.....####....M......q#',
+        '###~~~~~~~~~.####...........####...........##',
+        '###~~~~~~~~~......S...P...S..........########',
+        '###~~~~~#~~~.####...........####.....#.....##',
+        '###~~~~~~~~~.####...........####.....#.....##',
+        '###~~#~~~~~~.####...........####.....=..x..##',
+        '###~~~~~~~~~.#########X#########.....#.....##',
+        '###~~~~~~~~~.#########.#########.....#.....##',
+        '####################.....####################',
+        '####################.....####################',
+        '####################..E..####################',
+        '####################.....####################',
+        '#############################################',
+        '#############################################',
+      ],
+      obstacles: [
+        { sprite: 'robot', path: [[16, 4], [26, 4]], speed: 1.2 },
+      ],
+      lasers: [
+        { from: [36, 9], dir: 'down', always: true },
+      ],
+    },
   ];
+
+  // Worlds: ten levels each, except where a size is given here. The last world takes what's left.
+  const WORLD_SIZES = { 'The Last Star': 5 };
+  G.Worlds = [];
+  let start = 0;
+  for (let n = 0; start < G.Levels.length; n++) {
+    const name = G.WorldNames[n] || `World ${n + 1}`;
+    const last = n >= G.WorldNames.length - 1;
+    const size = last ? G.Levels.length - start : Math.min(WORLD_SIZES[name] || 10, G.Levels.length - start);
+    G.Worlds.push({ name, start, size });
+    start += size;
+  }
+  // Which world (index into Game.Worlds) a level belongs to.
+  G.worldOf = i => {
+    const n = G.Worlds.findIndex(w => i < w.start + w.size);
+    return n < 0 ? G.Worlds.length - 1 : n;
+  };
 })(window.Game = window.Game || {});

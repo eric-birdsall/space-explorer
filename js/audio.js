@@ -54,6 +54,18 @@
   const SFX = {
     step: () => tone({ freq: 200, dur: 0.04, type: 'triangle', vol: 0.05 }),
     pickup: () => arp([72, 76, 79, 84], 0.07, { dur: 0.13, type: 'square', vol: 0.16 }),
+    // Gems chime one step higher up the scale for each one you're carrying: counting by ear.
+    gem: (n = 1) => {
+      const scale = [72, 74, 76, 79, 81, 84, 86, 88, 91];
+      const m = scale[Math.min(scale.length, Math.max(1, n)) - 1];
+      tone({ freq: mtof(m), dur: 0.22, type: 'triangle', vol: 0.28 });
+      tone({ freq: mtof(m + 12), dur: 0.3, type: 'sine', vol: 0.14, delay: 0.05 });
+    },
+    checkpoint: () => arp([67, 72, 79], 0.09, { dur: 0.2, type: 'triangle', vol: 0.22 }),
+    flashlight: () => {
+      tone({ freq: 900, dur: 0.03, type: 'square', vol: 0.12 });
+      tone({ freq: 300, to: 1200, dur: 0.5, type: 'sine', vol: 0.16, delay: 0.05 });
+    },
     door: () => {
       tone({ freq: 220, to: 660, dur: 0.35, type: 'sawtooth', vol: 0.1 });
       tone({ freq: mtof(79), dur: 0.25, type: 'triangle', vol: 0.25, delay: 0.3 });
@@ -335,7 +347,7 @@
 
   G.Audio = {
     ensure,
-    play(name) { if (ac && SFX[name]) SFX[name](); },
+    play(name, arg) { if (ac && SFX[name]) SFX[name](arg); },
     startMusic() {
       if (musicTimer || !ensure()) return;
       if (!music) buildMusicDesk();
