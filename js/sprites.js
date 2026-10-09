@@ -33,6 +33,7 @@
     g: { C: '#2ed573', c: '#1e9150' },
     b: { C: '#3d8bff', c: '#2458b0' },
     y: { C: '#ffd32a', c: '#c49a00' },
+    x: { C: '#4fe3ff', c: '#2a9bb8' }, // gems and counting doors
   };
 
   // ---------- Astronaut ----------
@@ -241,6 +242,89 @@
     { m: '#d070b0', p: '#9a4080', n: '#5a2048', q: '#ffc0ea', h: '#4a1a3c', f: '#2a0e22', F: '#36122c' }, // Crystal Caves
     { m: '#e0b040', p: '#a87a20', n: '#604410', q: '#ffe8a0', h: '#4a3410', f: '#2a1d08', F: '#36260c' }, // Sun Station
     { m: '#4a8a8a', p: '#2a5a5e', n: '#12302f', q: '#90d8d8', h: '#143234', f: '#081a1b', F: '#0e2425' }, // Black Hole Rim
+    { m: '#5a6078', p: '#3a3f55', n: '#1c1f30', q: '#ffd32a', h: '#22263a', f: '#12141f', F: '#181b29' }, // Dark Moon
+    { m: '#4f7fd0', p: '#2f55a0', n: '#182f60', q: '#9fe8ff', h: '#1a2c5a', f: '#0c1630', F: '#111f42' }, // Gem Galaxy
+    { m: '#d8dce8', p: '#9aa0b4', n: '#555a70', q: '#ff9f1c', h: '#30344a', f: '#1a1c2a', F: '#222536' }, // The Last Star
+    { m: '#58c8b0', p: '#2f8f7c', n: '#17483f', q: '#fff3b0', h: '#173d36', f: '#0b211d', F: '#102c27' }, // Expeditions
+  ];
+
+  // ---------- Gems, counting doors and the flashlight ----------
+  const GEM = [
+    '................',
+    '................',
+    '................',
+    '....kkkkkkkk....',
+    '...kCwwCCCCck...',
+    '..kCwCCCCCCcck..',
+    '.kCCCCCCCCCCcck.',
+    '.kkkkkkkkkkkkkk.',
+    '.kcCCCCCCCCCcck.',
+    '..kcCCCCCCCcck..',
+    '...kcCCCCCcck...',
+    '....kcCCCcck....',
+    '.....kcCcck.....',
+    '......kcck......',
+    '.......kk.......',
+    '................',
+  ];
+
+  // A plain door panel: the dots that say how many gems it wants are drawn on top.
+  const GEM_DOOR = [
+    'kkkkkkkkkkkkkkkk',
+    'kggggggggggggggk',
+    'kgCCCCCCCCCCCCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCddddddddddCgk',
+    'kgCCCCCCCCCCCCgk',
+    'kggggggggggggggk',
+    'kkkkkkkkkkkkkkkk',
+  ];
+
+  const FLASHLIGHT = [
+    '................',
+    '................',
+    '................',
+    '................',
+    '..........kkk...',
+    '.kkkkkkkkkglk..Y',
+    '.kddddddkgllkY..',
+    '.kdoddddkgYYk.YY',
+    '.kddddddkgllkY..',
+    '.kkkkkkkkkglk..Y',
+    '..........kkk...',
+    '................',
+    '................',
+    '................',
+    '................',
+    '................',
+  ];
+
+  // Checkpoint beacon: a lamp on a pole (L is the lamp color).
+  const BEACON = [
+    '................',
+    '.......kk.......',
+    '......kLLk......',
+    '.....kLwLLk.....',
+    '.....kLLLLk.....',
+    '......kLLk......',
+    '.......kk.......',
+    '.......kg.......',
+    '.......kg.......',
+    '.......kg.......',
+    '.......kg.......',
+    '.......kg.......',
+    '.....kkkkkk.....',
+    '....kggggggk....',
+    '....kkkkkkkk....',
+    '................',
   ];
 
   // ---------- Friends and items ----------
@@ -466,6 +550,11 @@
       cache[`key_${color}`] = make(KEY, KEY_COLORS[color]);
       cache[`door_${color}`] = make(DOOR, KEY_COLORS[color]);
     });
+    cache.key_x = make(GEM, KEY_COLORS.x);
+    cache.door_x = make(GEM_DOOR, { C: KEY_COLORS.x.c, d: '#161a2e' });
+    cache.flashlight = make(FLASHLIGHT);
+    cache.beacon_off = make(BEACON, { L: '#4a5068', w: '#6a7699' });
+    cache.beacon_on = make(BEACON, { L: '#2ed573' });
   }
 
   G.Sprites = {

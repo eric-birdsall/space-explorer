@@ -63,8 +63,25 @@
     ctx.globalAlpha = 1;
   }
 
-  // Each world of 10 levels has its own wall and floor colors.
-  const themeOf = i => Math.min(G.Sprites.THEME_COUNT - 1, Math.floor(i / G.Game.PER_PAGE));
+  // Each world has its own wall and floor colors.
+  const themeOf = i => Math.min(G.Sprites.THEME_COUNT - 1, G.worldOf(i));
+
+  // Checkpoint beacon: the last one touched glows green.
+  function drawBeacon(x, y) {
+    const c = S.checkpoint;
+    const on = c && c.x === x && c.y === y;
+    if (on) {
+      const cx = (x + 0.5) * TS;
+      const cy = (y + 0.25) * TS;
+      const r = TS * (0.5 + 0.08 * Math.sin(S.time * 4) + S.checkAnim * 0.6);
+      const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
+      g.addColorStop(0, 'rgba(46,213,115,0.55)');
+      g.addColorStop(1, 'rgba(46,213,115,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    }
+    spr(on ? 'beacon_on' : 'beacon_off', x * TS, y * TS);
+  }
 
   function drawTiles() {
     const w = S.world;
@@ -100,6 +117,7 @@
         if (t === 'O') { drawBlackHole(x, y); continue; }
         if (t === '*') { drawCracks(x, y, w.cracked.some(c => c.x === x && c.y === y)); continue; }
         if (t === 'J') { drawJumpPad(x, y); continue; }
+        if (t === 'S') { drawBeacon(x, y); continue; }
         if (G.Rules.ONE_WAY[t]) { drawOneWay(x, y, G.Rules.ONE_WAY[t]); continue; }
         if (t === 's') { drawColorSwitch(x, y); continue; }
         if (t === 'm' || t === 'c') { drawLoweredBlock(x, y, t); continue; }
@@ -456,10 +474,12 @@
   function drawItems() {
     const items = S.world.items
       .concat(pendingOf('fruit').map(e => ({ x: e.x, y: e.y, kind: 'f' })))
-      .concat(pendingOf('shield').map(e => ({ x: e.x, y: e.y, kind: 'h' })));
+      .concat(pendingOf('shield').map(e => ({ x: e.x, y: e.y, kind: 'h' })))
+      .concat(pendingOf('flashlight').map(e => ({ x: e.x, y: e.y, kind: 't' })));
+    const names = { f: 'fruit', h: 'helmet', t: 'flashlight' };
     for (const it of items) {
       const bob = Math.sin(S.time * 3 + it.x) * 4;
-      spr(it.kind === 'f' ? 'fruit' : 'helmet', it.x * TS, it.y * TS + bob);
+      spr(names[it.kind], it.x * TS, it.y * TS + bob);
       if (it.kind === 'h') sparkle(it.x * TS + 50, it.y * TS + 12 + bob, 5 + Math.sin(S.time * 5) * 2, '#4fe3ff');
     }
   }
@@ -731,11 +751,49 @@
     }
   }
 
+  // Counting door: one dot per gem it wants, laid out like the faces of a dice. Dots fill in
+  // (and sparkle) as the gems are collected, so the door shows how many are still missing.
+  const DICE = {
+    1: [[1, 1]],
+    2: [[0, 0], [2, 2]],
+    3: [[0, 0], [1, 1], [2, 2]],
+    4: [[0, 0], [2, 0], [0, 2], [2, 2]],
+    5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]],
+    6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]],
+    7: [[0, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [2, 2]],
+    8: [[0, 0], [1, 0], [2, 0], [0, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
+    9: [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [0, 2], [1, 2], [2, 2]],
+  };
+
+  function drawGemDots(px, py, need) {
+    const have = S.world.inv.x - pendingOf('pickup').filter(e => e.color === 'x').length;
+    const dots = DICE[Math.min(9, need)];
+    dots.forEach(([gx, gy], i) => {
+      const cx = px + 19 + gx * 13;
+      const cy = py + 19 + gy * 13;
+      if (i < have) {
+        // A gem you already have: a bright filled dot.
+        ctx.fillStyle = '#4fe3ff';
+        ctx.fillRect(cx - 5, cy - 5, 10, 10);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(cx - 5, cy - 5, 4, 4);
+      } else {
+        // A gem still to find: an empty socket.
+        ctx.fillStyle = '#c3cbe0';
+        ctx.fillRect(cx - 5, cy - 5, 10, 10);
+        ctx.fillStyle = '#161a2e';
+        ctx.fillRect(cx - 3, cy - 3, 6, 6);
+      }
+    });
+    if (have >= need) sparkle(px + 52, py + 12, 5 + Math.sin(S.time * 6) * 2, '#ffffff');
+  }
+
   function drawDoors() {
     for (const d of S.world.doors) {
       const sh = S.shakes.find(s => s.x === d.x && s.y === d.y);
       const off = sh ? Math.sin(sh.t * 50) * 5 * (1 - sh.t / 0.4) : 0;
       spr(`door_${d.color}`, d.x * TS + off, d.y * TS);
+      if (d.color === 'x') drawGemDots(d.x * TS + off, d.y * TS, d.need);
     }
     // Opening doors slide up into the ceiling.
     for (const a of S.doorAnims) {
@@ -1326,7 +1384,7 @@
   // Menu page positions: 2 rows of 5 planets per world.
   function menuPos(i) {
     const cols = G.Game.MENU_COLS;
-    const j = i % G.Game.PER_PAGE;
+    const j = i - G.Worlds[G.worldOf(i)].start;
     const col = j % cols;
     const row = Math.floor(j / cols);
     return { x: canvas.width / 2 + (col - (cols - 1) / 2) * 150, y: 250 + row * 170 };
@@ -1381,13 +1439,12 @@
 
   function drawMenu() {
     drawStarfield();
-    const n = G.Levels.length;
-    const per = G.Game.PER_PAGE;
-    const page = Math.floor(S.menuSel / per);
-    const pages = Math.ceil(n / per);
+    const page = G.worldOf(S.menuSel);
+    const pages = G.Worlds.length;
+    const world = G.Worlds[page];
 
     // World name and page dots
-    const name = (G.WorldNames && G.WorldNames[page]) || `World ${page + 1}`;
+    const name = world.name;
     bigText(name, canvas.width / 2, 60, 44, ['#4fe3ff', '#d6d6e6', '#ff9f6a', '#bff4ff', '#d6b8ff'][page % 5]);
     for (let p = 0; p < pages; p++) {
       ctx.fillStyle = p === page ? '#ffffff' : 'rgba(255,255,255,0.3)';
@@ -1396,7 +1453,7 @@
       ctx.fill();
     }
 
-    for (let i = page * per; i < Math.min(n, (page + 1) * per); i++) {
+    for (let i = world.start; i < world.start + world.size; i++) {
       const p = menuPos(i);
       const selected = i === S.menuSel;
       drawPlanet(i, p.x, p.y, selected ? 44 : 38, selected);
@@ -1492,6 +1549,70 @@
     }
   }
 
+  // ---------- Dark levels ----------
+  // Everything is hidden except soft circles of light: a small one around the astronaut (much
+  // bigger with the flashlight), and little glows on the things that must never be a surprise
+  // or a mystery: the current goal, the hint trail, moving obstacles and laser beams.
+  let darkCanvas = null;
+
+  function drawDarkness() {
+    if (!S.world.dark) return;
+    if (!darkCanvas) {
+      darkCanvas = document.createElement('canvas');
+      darkCanvas.width = canvas.width;
+      darkCanvas.height = canvas.height;
+    }
+    const d = darkCanvas.getContext('2d');
+    d.globalCompositeOperation = 'source-over';
+    d.clearRect(0, 0, darkCanvas.width, darkCanvas.height);
+    d.fillStyle = 'rgba(3,4,12,0.95)';
+    d.fillRect(0, 0, darkCanvas.width, darkCanvas.height);
+    d.globalCompositeOperation = 'destination-out';
+    const ox = Math.round(S.cam.x);
+    const oy = Math.round(S.cam.y);
+    // (tx, ty) is a tile center in tiles; `r` is in tiles; `strength` is how fully it clears the dark.
+    const light = (tx, ty, r, strength = 1) => {
+      const cx = tx * TS - ox;
+      const cy = ty * TS - oy;
+      const R = r * TS;
+      if (cx < -R || cy < -R || cx > canvas.width + R || cy > canvas.height + R) return;
+      const g = d.createRadialGradient(cx, cy, R * 0.35, cx, cy, R);
+      g.addColorStop(0, `rgba(0,0,0,${strength})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      d.fillStyle = g;
+      d.fillRect(cx - R, cy - R, R * 2, R * 2);
+    };
+    const pv = G.Game.playerPos();
+    const flicker = Math.sin(S.time * 7) * 0.03;
+    if (S.screen === 'exit') {
+      const r = G.Game.rocketPos();
+      light(r.x / TS + 0.5, r.y / TS + 0.5, S.lightR + 1);
+    } else {
+      light(pv.x + 0.5, pv.y + 0.5 - (pv.hop || 0), S.lightR + flicker);
+    }
+    const g = S.goal;
+    if (g && S.screen === 'play' && !S.stuck) {
+      const pulse = 0.5 + 0.5 * Math.sin(S.time * 4);
+      light(g.x + 0.5, g.y + 0.5, 0.85 + 0.1 * pulse, 0.9);
+      if (g.pad) light(g.pad.x + 0.5, g.pad.y + 0.5, 0.8, 0.8);
+      if (S.idle >= G.Game.HINT_TIME) g.path.forEach(p => light(p.x + 0.5, p.y + 0.5, 0.45, 0.8));
+    }
+    for (const o of S.obstacles) {
+      if (o.arm) {
+        for (let k = -o.len; k <= o.len; k += 0.5) {
+          light(o.x + 0.5 + Math.cos(o.angle) * k, o.y + 0.5 + Math.sin(o.angle) * k, 0.5, 0.85);
+        }
+      } else {
+        light(o.x + 0.5, o.y + 0.5, 0.75, 0.85);
+      }
+    }
+    for (const l of S.lasers) {
+      if (G.Game.laserState(l) === 'off') continue;
+      G.Game.litTiles(l).forEach(t => light(t.x + 0.5, t.y + 0.5, 0.5, 0.8));
+    }
+    ctx.drawImage(darkCanvas, 0, 0);
+  }
+
   function draw() {
     ctx.imageSmoothingEnabled = false;
     buttons.length = 0;
@@ -1542,6 +1663,7 @@
     drawParticles();
     drawFart();
     ctx.restore();
+    drawDarkness();
     drawGoalPointer();
     drawInventory();
     drawLevelBadge();

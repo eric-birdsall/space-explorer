@@ -12,6 +12,8 @@
   const HIT_DIST = 0.66;     // in tiles; generous so near-misses count as misses
   const LASER_HIT = 0.55;
   const LASER_WARN = 0.5;    // beam flickers this long before switching on
+  const LIGHT_SMALL = 1.9;   // dark levels: tiles lit around the player...
+  const LIGHT_BIG = 4.8;     // ...and with the flashlight
   const HINT_TIME = 12;      // seconds without progress before the sparkle trail
   const DOOR_ANIM = 0.45;
   const EXIT_DUR = 2.8;
@@ -19,7 +21,7 @@
   const CHASER_NAP = 2.5;    // a chasing robot naps this long after bumping the player
   const TS = 64;
   const MENU_COLS = 5;
-  const PER_PAGE = 10;       // levels per world / menu page
+  const PER_PAGE = 10;       // most levels in one world / menu page
   const VIEW_W = 960;
   const VIEW_H = 640;
 
@@ -27,6 +29,22 @@
     // Finished levels are stored by level id, so inserting new levels doesn't shift them.
     try { return new Set(JSON.parse(localStorage.getItem('spaceExplorerDoneIds') || '[]')); } catch (e) { return new Set(); }
   }
+  // Checkpoint beacons (S tiles) in big levels: the restart button, and coming back to the level
+  // later, both return to the last beacon touched, with everything collected so far.
+  const CP_KEY = 'spaceExplorerCheckpoint';
+  function loadCheckpoint(id) {
+    try {
+      const c = JSON.parse(localStorage.getItem(CP_KEY) || 'null');
+      return c && c.id === id ? c : null;
+    } catch (e) { return null; }
+  }
+  function storeCheckpoint(c) {
+    try {
+      if (c) localStorage.setItem(CP_KEY, JSON.stringify(c));
+      else localStorage.removeItem(CP_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
   function saveDone() {
     try { localStorage.setItem('spaceExplorerDoneIds', JSON.stringify([...S.done])); } catch (e) { /* ignore */ }
   }
@@ -42,10 +60,18 @@
 
   const ease = t => t * t * (3 - 2 * t);
 
-  function loadLevel(i) {
+  // `fresh` starts the level from the very beginning, forgetting any checkpoint.
+  function loadLevel(i, fresh) {
     const level = G.Levels[i];
     const w = G.Rules.parse(level);
+    let cp = loadCheckpoint(level.id);
+    if (cp && fresh) { storeCheckpoint(null); cp = null; }
+    if (cp) {
+      try { G.Rules.restore(w, cp.snap); } catch (e) { cp = null; }
+    }
     Object.assign(S, {
+      checkpoint: cp ? { x: cp.x, y: cp.y, sig: cp.sig } : null,
+      checkAnim: 0,
       screen: 'play',
       levelIndex: i,
       levelTime: 0,
@@ -63,6 +89,8 @@
       padAnims: [],
       fart: null,       // secret F-key cloud: { x, y, t, maxR } in pixels
       pending: [],      // pickups the rules already made but the player hasn't reached yet
+      lightOn: w.light, // dark levels: has the player reached the flashlight yet?
+      lightR: w.light ? LIGHT_BIG : LIGHT_SMALL, // dark levels: radius of the lit circle around the player, in tiles
       leverAnim: w.lever ? 1 : 0,
       obstacles: (level.obstacles || []).map(makeObstacle),
       lasers: (level.lasers || []).map((l, index) => ({
@@ -393,7 +421,13 @@
       const cy = (e.y + 0.5) * TS;
       switch (e.type) {
         case 'pickup':
-          G.Audio.play('pickup');
+          if (e.color === 'x') {
+            // Count the gems the player has actually reached so far.
+            const onTheWay = S.pending.filter(q => q.event.type === 'pickup' && q.event.color === 'x').length;
+            G.Audio.play('gem', S.world.inv.x - onTheWay);
+          } else {
+            G.Audio.play('pickup');
+          }
           burst(cx, cy, [G.Sprites.KEY_COLORS[e.color].C, '#ffffff'], 18, { star: true, size: 5 });
           S.idle = 0;
           break;
@@ -459,6 +493,12 @@
           burst(cx, cy, ['#ff9f1c', '#ffd32a', '#ffffff'], 16, { star: true, size: 5 });
           S.idle = 0;
           break;
+        case 'flashlight':
+          G.Audio.play('flashlight');
+          S.lightOn = true;
+          burst(cx, cy, ['#ffd32a', '#ffffff'], 24, { star: true, size: 5 });
+          S.idle = 0;
+          break;
         case 'shield':
           G.Audio.play('shield');
           S.shield = SHIELD_TIME;
@@ -510,7 +550,7 @@
     const res = G.Rules.step(S.world, d.dx, d.dy);
     // The rules pick up keys, fruit and helmets for the whole move at once (a slide or belt
     // ride can pass several tiles). Hold each one back until the player actually gets there.
-    const pickupTypes = ['pickup', 'fruit', 'shield'];
+    const pickupTypes = ['pickup', 'fruit', 'shield', 'flashlight'];
     const now = res.events.filter(e => !pickupTypes.includes(e.type));
     if (res.moved) {
       for (const e of res.events) {
@@ -646,12 +686,32 @@
     handleEvents(ready.map(p => p.event), false);
   }
 
+  // Standing on a beacon saves a checkpoint, unless the level can no longer be finished from here.
+  function touchBeacon() {
+    const w = S.world;
+    const p = w.player;
+    if (w.grid[p.y][p.x] !== 'S' || S.stuck || S.stuckJob) return;
+    const snap = G.Rules.snapshot(w);
+    // What has been achieved so far (ignoring where the player stands and any running countdown).
+    const sig = JSON.stringify(Object.assign({}, snap, { player: null, timer: 0 }));
+    const old = S.checkpoint;
+    const isNew = !old || old.x !== p.x || old.y !== p.y || old.sig !== sig;
+    S.checkpoint = { x: p.x, y: p.y, sig };
+    storeCheckpoint({ id: G.Levels[S.levelIndex].id, x: p.x, y: p.y, sig, snap });
+    if (isNew) {
+      S.checkAnim = 1;
+      G.Audio.play('checkpoint');
+      burst((p.x + 0.5) * TS, (p.y + 0.2) * TS, ['#2ed573', '#ffffff'], 18, { star: true, size: 5 });
+    }
+  }
+
   function finishMove() {
     firePending();
     S.move = null;
     S.walk++;
     const p = S.world.player;
     if (S.world.grid[p.y][p.x] === 'E') startExit();
+    else touchBeacon();
   }
 
   function startExit() {
@@ -659,6 +719,7 @@
     S.exitT = 0;
     S.done.add(G.Levels[S.levelIndex].id);
     saveDone();
+    if (S.checkpoint) storeCheckpoint(null);
     G.Audio.play('launch');
     const e = S.world.exit;
     burst((e.x + 0.5) * TS, (e.y + 0.5) * TS, CONFETTI, 50, { star: true, speed: 320, gravity: 300, life: 1.6, up: 120, size: 6 });
@@ -791,6 +852,8 @@
     S.padAnims.forEach(a => { a.t += dt; });
     S.padAnims = S.padAnims.filter(a => a.t < 0.5);
     updateFart(dt);
+    S.checkAnim = Math.max(0, S.checkAnim - dt);
+    S.lightR += ((S.lightOn ? LIGHT_BIG : LIGHT_SMALL) - S.lightR) * Math.min(1, dt * 3);
     S.alienAnims = S.alienAnims.filter(a => a.t < 1.2);
     S.leverAnim += Math.sign((S.world.lever ? 1 : 0) - S.leverAnim) * Math.min(Math.abs((S.world.lever ? 1 : 0) - S.leverAnim), dt * 6);
     S.moveLock = Math.max(0, S.moveLock - dt);
@@ -873,11 +936,11 @@
     if (!d || !d.fresh) return;
     const n = G.Levels.length;
     let sel = S.menuSel;
-    const inPage = sel % PER_PAGE;
+    const world = G.Worlds[G.worldOf(sel)];
     if (d.name === 'left') sel = Math.max(0, sel - 1);
     else if (d.name === 'right') sel = Math.min(n - 1, sel + 1);
-    else if (d.name === 'up' && inPage >= MENU_COLS) sel -= MENU_COLS;
-    else if (d.name === 'down' && inPage < MENU_COLS && sel + MENU_COLS < n) sel += MENU_COLS;
+    else if (d.name === 'up' && sel - MENU_COLS >= world.start) sel -= MENU_COLS;
+    else if (d.name === 'down' && sel + MENU_COLS < world.start + world.size) sel += MENU_COLS;
     if (sel !== S.menuSel) {
       S.menuSel = sel;
       G.Audio.play('tick');
@@ -885,10 +948,9 @@
   }
 
   function menuPage(delta) {
-    const pages = Math.ceil(G.Levels.length / PER_PAGE);
-    const page = Math.floor(S.menuSel / PER_PAGE) + delta;
-    if (page < 0 || page >= pages) return;
-    S.menuSel = page * PER_PAGE;
+    const page = G.worldOf(S.menuSel) + delta;
+    if (page < 0 || page >= G.Worlds.length) return;
+    S.menuSel = G.Worlds[page].start;
     G.Audio.play('tick');
   }
 
@@ -945,7 +1007,10 @@
       if (S.screen === 'play') openMenu(S.levelIndex);
       else if (S.screen === 'win') openMenu();
     },
+    // Back to the last checkpoint beacon, or the start of the level if there isn't one.
     restart() { if (S.screen === 'play') loadLevel(S.levelIndex); },
+    // Shift+R: from the very beginning, forgetting any checkpoint.
+    restartFull() { if (S.screen === 'play') loadLevel(S.levelIndex, true); },
     skip() { if (S.screen === 'play') startExit(); },
     fart,
     fartRadius,

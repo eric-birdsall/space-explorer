@@ -26,11 +26,13 @@
       receivers: [],                    // crystals (q) that open gates while a beam hits them
       mirrors: [],                      // { x, y, o: '/' | '\\' } - bump one to turn it
       aliens: [],                       // friendly aliens (a) move aside for a space fruit
-      items: [],                        // fruits (f) and shield helmets (h)
+      items: [],                        // fruits (f), shield helmets (h) and flashlights (t)
       cracked: [],                      // crumbly floor (*) stepped off once: cracked, still walkable
       crumbled: [],                     // crumbly floor stepped off twice: now a hole
       filled: [],                       // holes (_) filled in by a crate
-      inv: { r: 0, g: 0, b: 0, y: 0, f: 0 },
+      inv: { r: 0, g: 0, b: 0, y: 0, x: 0, f: 0 }, // keys by color, gems (x) and fruit (f)
+      dark: !!level.dark,               // a dark level: only the area around the player is lit
+      light: false,                     // flashlight picked up?
       hasField: false,
       fieldOpen: true,
       color: 0,                         // color switch: 0 = pink blocks up, 1 = cyan blocks up
@@ -53,6 +55,8 @@
       })),
       _beams: null,
     };
+    // Counting doors (X) take their gem counts from `gemDoors`, in reading order.
+    const gemNeeds = (level.gemDoors || []).slice();
     rows.forEach((row, y) => {
       if (row.length !== world.w) throw new Error(`Row ${y} has length ${row.length}, expected ${world.w}`);
       const line = [];
@@ -66,7 +70,7 @@
         else if (ch === 'F') { base = 'F'; world.hasField = true; world.fieldOpen = false; }
         else if (ch === '+') { base = '+'; world.buttons.push({ x, y }); }
         else if (ch === 'd') { base = 'd'; world.timers.push({ x, y }); }
-        else if ('=D~J_*smcLO'.includes(ch)) base = ch;
+        else if ('=D~J_*smcLOS'.includes(ch)) base = ch; // (S, a checkpoint beacon, is plain floor to the rules)
         else if (CONVEYORS[ch] || ONE_WAY[ch]) base = ch;
         else if (ch >= '1' && ch <= '9') { base = 'T'; world.teleports.push({ x, y, id: ch }); }
         else if (ch === 'q') { base = 'q'; world.receivers.push({ x, y }); }
@@ -74,8 +78,9 @@
         else if (ch === 'C') world.crates.push({ x, y });
         else if (ch === 'I') world.crates.push({ x, y, slick: true });
         else if (ch === 'a') world.aliens.push({ x, y });
-        else if (ch === 'f' || ch === 'h') world.items.push({ x, y, kind: ch });
-        else if ('rgby'.includes(ch)) world.keys.push({ x, y, color: ch });
+        else if (ch === 'f' || ch === 'h' || ch === 't') world.items.push({ x, y, kind: ch });
+        else if ('rgbyx'.includes(ch)) world.keys.push({ x, y, color: ch }); // a gem (x) is a key you count
+        else if (ch === 'X') world.doors.push({ x, y, color: 'x', need: gemNeeds.length ? gemNeeds.shift() : 1 });
         else if ('RGBY'.includes(ch)) world.doors.push({ x, y, color: ch.toLowerCase() });
         else if (ch !== '.') throw new Error(`Unknown map character "${ch}" at ${x},${y}`);
         line.push(base);
@@ -84,6 +89,10 @@
     });
     if (!world.player) throw new Error('Level has no player start (P)');
     if (!world.exit) throw new Error('Level has no exit (E)');
+    if (gemNeeds.length) throw new Error('`gemDoors` lists more counts than there are counting doors (X)');
+    const gems = world.keys.filter(k => k.color === 'x').length;
+    const needed = world.doors.reduce((n, d) => n + (d.color === 'x' ? d.need : 0), 0);
+    if (needed > gems) throw new Error(`Counting doors need ${needed} gems but the level has ${gems}`);
     world.start = { x: world.player.x, y: world.player.y };
     const ids = {};
     world.teleports.forEach(t => { ids[t.id] = (ids[t.id] || 0) + 1; });
@@ -305,6 +314,9 @@
       if (item.kind === 'f') {
         w.inv.f++;
         events.push({ type: 'fruit', x, y });
+      } else if (item.kind === 't') {
+        w.light = true;
+        events.push({ type: 'flashlight', x, y });
       } else {
         events.push({ type: 'shield', x, y });
       }
@@ -332,11 +344,12 @@
     const di = indexAt(w.doors, tx, ty);
     if (di >= 0) {
       const door = w.doors[di];
-      if (w.inv[door.color] > 0) {
-        w.inv[door.color]--;
+      const need = door.need || 1; // counting doors use up that many gems
+      if (w.inv[door.color] >= need) {
+        w.inv[door.color] -= need;
         w.doors.splice(di, 1);
         changed(w);
-        return { moved: false, events: [{ type: 'doorOpen', x: tx, y: ty, color: door.color }] };
+        return { moved: false, events: [{ type: 'doorOpen', x: tx, y: ty, color: door.color, need }] };
       }
       return { moved: false, events: [{ type: 'locked', x: tx, y: ty, color: door.color }] };
     }
@@ -512,7 +525,7 @@
     const toggles = [];
     w.grid.forEach((row, y) => row.forEach((t, x) => { if (t === 'L' || t === 's') toggles.push({ x, y, kind: 'switch' }); }));
     const groups = [
-      w.doors.filter(d => w.inv[d.color] > 0).map(d => ({ x: d.x, y: d.y, kind: 'door' })),
+      w.doors.filter(d => w.inv[d.color] >= (d.need || 1)).map(d => ({ x: d.x, y: d.y, kind: 'door' })),
       w.inv.f > 0 ? w.aliens.map(a => ({ x: a.x, y: a.y, kind: 'alien' })) : [],
       w.keys.map(k => ({ x: k.x, y: k.y, kind: 'key' }))
         .concat(w.items.filter(i => i.kind === 'f' && w.aliens.length).map(i => ({ x: i.x, y: i.y, kind: 'key' }))),
@@ -559,6 +572,20 @@
     _beams: null,
   });
 
+  // Checkpoints: everything about a world that changes during play, as plain data, and back.
+  const LIVE = ['player', 'keys', 'doors', 'crates', 'mirrors', 'aliens', 'items', 'cracked', 'crumbled', 'filled',
+    'inv', 'fieldOpen', 'color', 'lever', 'timer', 'light'];
+  function snapshot(w) {
+    const out = {};
+    LIVE.forEach(k => { out[k] = w[k]; });
+    return JSON.parse(JSON.stringify(out));
+  }
+  function restore(w, snap) {
+    Object.assign(w, JSON.parse(JSON.stringify(snap)));
+    changed(w);
+    return w;
+  }
+
   function stateKey(w) {
     const list = a => a.map(o => `${o.x},${o.y}`).sort().join(';');
     return [
@@ -566,7 +593,7 @@
       list(w.keys), list(w.doors), list(w.crates), list(w.items), list(w.aliens),
       list(w.cracked), list(w.crumbled), list(w.filled),
       w.mirrors.map(m => m.o).join(''),
-      w.inv.r, w.inv.g, w.inv.b, w.inv.y, w.inv.f,
+      w.inv.r, w.inv.g, w.inv.b, w.inv.y, w.inv.x, w.inv.f,
       w.fieldOpen ? 1 : 0, w.color, w.lever ? 1 : 0,
       w.timer,
     ].join('|');
@@ -610,7 +637,7 @@
   }
 
   G.Rules = {
-    parse, clone, step, flip, useTargets, successors, stateKey, tileAt, isPlain, isOpen, gatesOpen, timedOpen, beamTiles, trace,
+    parse, clone, snapshot, restore, step, flip, useTargets, successors, stateKey, tileAt, isPlain, isOpen, gatesOpen, timedOpen, beamTiles, trace,
     findPath, nextGoal, solve, canFinish, CONVEYORS, ONE_WAY,
   };
 })(window.Game = window.Game || {});

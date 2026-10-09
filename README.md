@@ -1,6 +1,6 @@
 # Space Explorer
 
-A gentle top-down puzzle game for small kids (about 4–5 years old). You play a little astronaut who explores ten worlds, collecting keys, opening doors, pushing crates, dodging asteroids and robots, and flying away in a rocket at the end of each level.
+A gentle top-down puzzle game for small kids (about 4–5 years old). You play a little astronaut who explores fourteen worlds, collecting keys, opening doors, pushing crates, dodging asteroids and robots, and flying away in a rocket at the end of each level.
 
 **Play it here: https://eric-birdsall.github.io/space-explorer/**
 
@@ -45,15 +45,16 @@ Progress is saved separately on each device. If there is no sound on an iPad, ch
 | Space | Turn the mirror next to the astronaut |
 | Enter / Space | Start the selected level in the menu |
 | Esc | Back to the level menu |
-| R | Restart the current level |
+| R | Restart the current level (in an expedition: back to the last checkpoint) |
+| Shift + R | Restart an expedition from the very beginning (a shortcut for parents) |
 | M | Sound on or off |
 | Shift + N | Skip the current level (a shortcut for parents) |
 
-The on-screen buttons in the top-right corner do the same as some of these keys: 🏠 goes to the menu, 🔊 turns sound on or off, and ↻ restarts the level. The badge at the bottom shows the current level (for example "Level 7 / 100"); clicking it also opens the level menu, with the current level selected. You can also click a planet in the menu to start that level.
+The on-screen buttons in the top-right corner do the same as some of these keys: 🏠 goes to the menu, 🔊 turns sound on or off, and ↻ restarts the level. The badge at the bottom shows the current level (for example "Level 7 / 126"); clicking it also opens the level menu, with the current level selected. You can also click a planet in the menu to start that level.
 
 ### Worlds and the level menu
 
-The 100 levels are grouped into 10 worlds of 10, each with its own colors:
+The 126 levels are grouped into worlds, mostly of 10, each with its own colors:
 
 | Levels | World | Look |
 |---|---|---|
@@ -67,6 +68,10 @@ The 100 levels are grouped into 10 worlds of 10, each with its own colors:
 | 71–80 | Crystal Caves | Pink |
 | 81–90 | Sun Station | Gold |
 | 91–100 | Black Hole Rim | Dark teal |
+| 101–110 | Dark Moon | Dark slate with yellow rivets |
+| 111–120 | Gem Galaxy | Deep blue |
+| 121–125 | The Last Star | Silver |
+| 126 | Expeditions | Mint green |
 
 After the title screen, the menu shows one world per page, with one numbered planet per level.
 
@@ -76,7 +81,18 @@ After the title screen, the menu shows one world per page, with one numbered pla
 
 ### Big levels
 
-Eight levels (36, 49, 58, 69, 79, 89, 98 and 100) are bigger than the screen. The camera follows the astronaut, and when the next goal is off screen, a pulsing yellow arrow at the edge points toward it.
+Twelve levels (36, 49, 58, 69, 79, 89, 98, 100, 110, 120, 125 and 126) are bigger than the screen. The camera follows the astronaut, and when the next goal is off screen, a pulsing yellow arrow at the edge points toward it.
+
+### Expeditions and checkpoints
+
+Expeditions are much bigger levels, about five minutes long, with several jobs to do. A hub room has a wing on each side. Each wing is a short puzzle that hides one gem, the wings can be done in any order, and the rocket waits behind a counting door that wants all the gems.
+
+Because a big level is a lot to lose, expeditions have **checkpoint beacons**: little lamp posts that turn green when the astronaut walks over them.
+
+- The restart button (or **R**) goes back to the last beacon touched, with everything collected so far.
+- Leaving the level, or closing the game, and coming back later also resumes from that beacon.
+- A beacon never saves a position the level can't be finished from.
+- **Shift + R** starts the expedition again from the very beginning.
 
 ### Helping without words
 
@@ -85,6 +101,7 @@ Eight levels (36, 49, 58, 69, 79, 89, 98 and 100) are bigger than the screen. Th
 - **Instant hint:** bumping into a locked door, a force field, a closed gate, a timed door or a laser wall shows the trail straight away.
 - **Soft failure:** touching an obstacle just gives a silly "boing" and a small bounce back, followed by a moment of safety.
 - **Mirror prompt:** a little space bar (or the yellow ↻ button on touch screens) bobs above the astronaut whenever a mirror can be turned.
+- **Counting dots:** a counting door shows one dot for each gem it wants. The dots fill in as gems are collected, and each gem chimes one note higher than the last.
 - **Jump arcs:** a dotted arc shows where each jump pad will land you.
 
 ## Things in the game
@@ -94,6 +111,7 @@ Eight levels (36, 49, 58, 69, 79, 89, 98 and 100) are bigger than the screen. Th
 | Thing | How it works |
 |---|---|
 | 🔑 **Keys and doors** | Walk onto a key to pick it up, and it appears in the top-left corner. Walk into the door of the same color to open it. There are four colors: red, green, blue and yellow. |
+| 💎 **Gems and counting doors** | A counting door shows dots, like a dice. Collect that many gems and walk into the door to open it. The gems are used up. |
 | 📦 **Crates** | Walk into a crate to push it one tile. Crates can't be pulled. |
 | 🟦 **Slippery crates** | Blue crates that slide across ice until something stops them. On ordinary floor they move one tile, like a normal crate. |
 | 🟩 **Pads and force fields** | Push crates onto every teal pad to switch the force field off. It stays off for good. |
@@ -110,6 +128,8 @@ Eight levels (36, 49, 58, 69, 79, 89, 98 and 100) are bigger than the screen. Th
 | 🪞 **Mirrors and crystals** | A laser bounces off mirrors. Stand next to a mirror and press Space (or the ↻ button) to turn it. When the beam reaches a crystal, the crystal lights up and opens the gates. |
 | 👽 **Friendly aliens and space fruit** | An alien blocks a corridor until it is brought a space fruit. Then it hops aside, happy. |
 | 🪖 **Shield helmet** | Gives a bubble shield for 8 seconds. With it, the astronaut walks straight through moving obstacles. |
+| 🌑 **Dark levels** | Only a small circle around the astronaut is lit. The next goal still glows through the dark, and so do moving obstacles and laser beams, so nothing is a nasty surprise. |
+| 🔦 **Flashlight** | Picking it up makes the lit circle in a dark level much bigger. |
 | 🚀 **Rocket** | Reach the rocket to finish the level. |
 
 ### Obstacles
@@ -287,6 +307,52 @@ The levels where this can happen are 29, 34, 43, 71, 73, 74, 76, 77, 78, 80, 93 
 | 99 | Jump pad, timer door, color wall and a mirror to the crystal gate |
 | 100 | Grand finale: nearly everything in one big level |
 
+**101–110: Dark Moon**
+
+| # | Idea it teaches |
+|---|---|
+| 101 | Gems: the door shows two dots, so bring it two gems |
+| 102 | Three dots, three gems in three corners |
+| 103 | Two counting doors: first two gems, then three |
+| 104 | Four gems but the door only wants three: leave the one the robot guards |
+| 105 | Lights out: follow the glow to the rocket |
+| 106 | Pick up the flashlight, then find the key in a dark maze |
+| 107 | Three gems hidden in the dark |
+| 108 | Gems on the ice: a gem stops your slide |
+| 109 | Four gems in the dark, with a robot and an asteroid about |
+| 110 | Big dark level: flashlight, two counting doors and a red key |
+
+**111–120: Gem Galaxy**
+
+| # | Idea it teaches |
+|---|---|
+| 111 | A gem behind a gate: push the crate down its slot onto the button |
+| 112 | Three gems in three closed rooms, reached only by portals |
+| 113 | Ride one belt to the far gem and another back, past an asteroid |
+| 114 | One gem behind the pink wall, one behind the blue: the switch swaps them |
+| 115 | A frozen lake in the dark: flashlight, slide to the key, slide to the door |
+| 116 | Three gems around the pillars with a chasing robot |
+| 117 | A laser glowing in the dark: turn the mirror to light the crystal |
+| 118 | Gem islands: jump over on one, come back over the other |
+| 119 | Press the timer and dash for the gem; a second button inside lets you back out |
+| 120 | Big level: three gems for the first door, then across the ice for two more |
+
+**121–125: The Last Star**
+
+| # | Idea it teaches |
+|---|---|
+| 121 | A laser wall in the dark: push the crate down the tunnel into the beam |
+| 122 | Fruit for the alien who guards two gems, and a lever for the laser guarding the third |
+| 123 | Three gems in the dark with a chasing robot |
+| 124 | Four gems, two black holes and a bouncing comet |
+| 125 | The last star: dark, flashlight, crate and gate, portals and two counting doors |
+
+**126: Expeditions**
+
+| # | Idea it teaches |
+|---|---|
+| 126 | Three wings, three gems: slide across a frozen lake, feed an alien, and turn a mirror to light a crystal |
+
 ## Making levels
 
 Levels live in [`js/levels.js`](js/levels.js). Each level is a text map, usually 15 × 10 (one screen). Maps can be any bigger size, and then they scroll.
@@ -302,6 +368,7 @@ J  jump pad          _  hole             *  crumbly floor
 s  color switch      m  pink block       c  blue block (pink starts raised)
 L  big lever         M W  mirrors ( / and \ )                 q  crystal
 a  friendly alien    f  space fruit      h  shield helmet     O  black hole
+x  gem               X  counting door    t  flashlight        S  checkpoint beacon
 ```
 
 Moving obstacles and lasers are listed next to the map:
@@ -334,8 +401,10 @@ A few optional level settings:
 | `holdTimer: true` | Hint: the level needs a crate parked on a timer button |
 | `crateSpots: [[8, 4]]` | Hint: where a crate should be pushed, for example to make a stopper on ice |
 | `leverReversesBelts: true` | The big lever also reverses every conveyor belt |
+| `gemDoors: [2, 3]` | How many gems each counting door (`X`) wants, in reading order: left to right, top to bottom (default 1) |
+| `dark: true` | A dark level: only the area around the astronaut is lit |
 
-Each level also has an `id`. Saved progress is stored by id, so levels can be inserted or reordered without mixing up which planets have stars. Every 10 levels in the list form a world. The world names are in `Game.WorldNames`, and the colors are in `THEMES` in [`js/sprites.js`](js/sprites.js).
+Each level also has an `id`. Saved progress is stored by id, so levels can be inserted or reordered without mixing up which planets have stars. Every 10 levels in the list form a world, except for the sizes listed in `WORLD_SIZES` at the bottom of the file; the last world takes whatever levels are left. The world names are in `Game.WorldNames`, and the colors are in `THEMES` in [`js/sprites.js`](js/sprites.js).
 
 Walls that are completely surrounded by other walls are drawn as open space with twinkling stars.
 
