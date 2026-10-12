@@ -51,7 +51,7 @@ Progress is saved separately on each device. If there is no sound on an iPad, ch
 | M | Sound on or off |
 | Shift + N | Skip the current level (a shortcut for parents) |
 
-The on-screen buttons in the top-right corner do the same as some of these keys: 🏠 goes to the menu, 🔊 turns sound on or off, and ↻ restarts the level. The badge at the bottom shows the current level (for example "Level 7 / 126"); clicking it also opens the level menu, with the current level selected. You can also click a planet in the menu to start that level.
+The on-screen buttons in the top-right corner do the same as some of these keys: 🏠 goes to the menu, 🔊 turns sound on or off, and ↻ restarts the level. The badge at the bottom shows the current level (for example "Level 7 / 126"); clicking it also opens the level menu, with the current level selected. You can also click a planet in the menu: the first click shows what's in that level, and a second click starts it.
 
 ### Worlds and the level menu
 
@@ -82,8 +82,9 @@ After the title screen, the menu shows one world per page, with one numbered pla
 
 ### Finding levels by what's in them
 
-Kids often want "the one with the shield". Two things on the level menu help, both using pictures only:
+Kids often want "the one with the shield". Three things on the level menu help, all using pictures only:
 
+- **Tap a planet to look inside:** tapping or clicking a planet doesn't start it straight away. The planet grows to fill the screen, with a picture of everything in that level circling it. Tap the planet again to start, or the red ✕ to go back.
 - **What's in this level:** a row of small pictures under the planets shows everything in the selected level.
 - **The finder:** the yellow magnifying-glass button in the top-left corner (or **F**) opens a grid with a picture of every kind of object. Pick one, and the menu shows only the levels that contain it. The red ✕ button (or **Esc**) goes back to the worlds.
 
