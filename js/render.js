@@ -1584,7 +1584,7 @@
   }
 
   // Round button in the top-left corner of the menu: the finder, or a cross to close it.
-  function drawFindButton(closing) {
+  function drawFindButton(closing, name) {
     const cx = 56;
     const cy = 52;
     const r = 36;
@@ -1605,7 +1605,7 @@
     } else {
       drawMagnifier(cx - 2, cy - 2, 18, '#161a2e');
     }
-    buttons.push({ name: closing ? 'findClose' : 'find', x: cx - r - 10, y: cy - r - 10, w: r * 2 + 20, h: r * 2 + 20 });
+    buttons.push({ name: name || (closing ? 'findClose' : 'find'), x: cx - r - 10, y: cy - r - 10, w: r * 2 + 20, h: r * 2 + 20 });
   }
 
   // The finder's first page: every kind of object. Tap one to see the levels that have it.
@@ -1738,7 +1738,7 @@
       const p = menuPos(k);
       const selected = i === S.menuSel;
       drawPlanet(i, p.x, p.y, selected ? 44 : 38, selected);
-      buttons.push({ name: `level:${i}`, x: p.x - 60, y: p.y - 60, w: 120, h: 120 });
+      buttons.push({ name: `planet:${i}`, x: p.x - 60, y: p.y - 60, w: 120, h: 120 });
     });
     const sp = menuPos(Math.max(0, view.levels.indexOf(S.menuSel)));
     const bob = Math.sin(S.time * 4) * 5;
@@ -1778,6 +1778,72 @@
       ctx.textAlign = 'right';
       ctx.fillText('Arrows: pick · Enter: go · F: find', canvas.width - 16, canvas.height - 16);
     }
+    if (S.preview) drawPreview(view);
+  }
+
+  // A tapped planet grows to fill the screen, with a picture of everything in that level
+  // circling it. Tapping the planet starts the level; the red cross goes back.
+  function drawPreview(view) {
+    buttons.length = 0; // nothing underneath can be tapped
+    const pv = S.preview;
+    const i = pv.level;
+    const smooth = t => t * t * (3 - 2 * t);
+    const k = smooth(Math.min(1, pv.t / 0.35));
+    ctx.fillStyle = `rgba(7,9,22,${0.85 * k})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const from = menuPos(Math.max(0, view.levels.indexOf(i)));
+    const mx = canvas.width / 2;
+    const my = canvas.height / 2;
+    const cx = from.x + (mx - from.x) * k;
+    const cy = from.y + (my - from.y) * k;
+    const breathe = k >= 1 ? Math.sin(S.time * 3) * 4 : 0;
+    const r = 44 + (150 - 44) * k + breathe;
+
+    // Pulsing ring: "tap me"
+    const pulse = 0.5 + 0.5 * Math.sin(S.time * 5);
+    ctx.strokeStyle = `rgba(255,240,160,${(0.4 + 0.5 * pulse) * k})`;
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r + 14 + pulse * 6, 0, Math.PI * 2);
+    ctx.stroke();
+
+    drawPlanet(i, cx, cy, r, false, false);
+    bigText(String(i + 1), cx, cy - 14 * k, 32 + 72 * k, '#ffffff');
+    if (S.done.has(G.Levels[i].id)) sparkle(cx + r * 0.72, cy - r * 0.72, 12 + 14 * k, '#ffd32a');
+    // A little "play" arrow under the number
+    if (k >= 1) {
+      const py = cy + 78;
+      ctx.fillStyle = '#161a2e';
+      ctx.beginPath();
+      ctx.moveTo(cx - 20, py - 26); ctx.lineTo(cx + 28, py); ctx.lineTo(cx - 20, py + 26);
+      ctx.fill();
+      ctx.fillStyle = '#ffd32a';
+      ctx.beginPath();
+      ctx.moveTo(cx - 14, py - 17); ctx.lineTo(cx + 18, py); ctx.lineTo(cx - 14, py + 17);
+      ctx.fill();
+    }
+
+    // The objects pop in one after another and drift slowly around the planet.
+    const ids = G.Game.LEVEL_FEATURES[i];
+    const R = 236;
+    ids.forEach((id, j) => {
+      const a = Math.min(1, Math.max(0, (pv.t - 0.3 - j * 0.06) / 0.25));
+      if (a <= 0) return;
+      const pop = 1 + 0.25 * Math.sin(a * Math.PI) * (1 - a) * 4; // little overshoot
+      const size = 76 * a * pop;
+      const ang = -Math.PI / 2 + (j / ids.length) * Math.PI * 2 + S.time * 0.12;
+      const x = mx + Math.cos(ang) * R;
+      const y = my + Math.sin(ang) * R;
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
+      ctx.beginPath();
+      ctx.arc(x, y, size * 0.62, 0, Math.PI * 2);
+      ctx.fill();
+      drawIcon(id, x - size / 2, y - size / 2, size);
+    });
+
+    drawFindButton(true, 'previewClose');
+    buttons.push({ name: `level:${i}`, x: cx - r - 24, y: cy - r - 24, w: (r + 24) * 2, h: (r + 24) * 2 });
   }
 
   // When the goal is off screen (big levels), a pulsing arrow at the edge points to it.

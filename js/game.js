@@ -58,6 +58,7 @@
     menuMode: null,   // null = worlds, 'pick' = choosing an object to look for, 'list' = levels that have it
     pickSel: 0,       // highlighted object in the picker
     filter: null,     // 'list' mode: { id, list } - the object and the levels that contain it
+    preview: null,    // a planet tapped on the menu, grown big to show what's in it: { level, t }
     done: loadDone(),
   };
 
@@ -969,18 +970,36 @@
     // Coming back from a level found with the finder returns to the same list.
     if (S.menuMode === 'list' && S.filter.list.includes(S.menuSel)) S.menuMode = 'list';
     else { S.menuMode = null; S.filter = null; }
+    S.preview = null;
     G.Input.clearTaps();
+  }
+
+  // Tapping a planet doesn't start it straight away: the planet grows to fill the screen with
+  // pictures of everything in that level around it. Tapping it again starts the level.
+  function previewLevel(i) {
+    if (S.screen !== 'menu' || S.menuMode === 'pick' || !G.Levels[i]) return;
+    S.menuSel = i;
+    S.preview = { level: i, t: 0 };
+    G.Audio.play('pad');
+    G.Input.clearTaps();
+  }
+  function closePreview() {
+    if (!S.preview) return;
+    S.preview = null;
+    G.Audio.play('tick');
   }
 
   // The finder: pick an object, then see every level that has one.
   function openFind() {
     if (S.screen !== 'menu') return;
+    S.preview = null;
     S.menuMode = 'pick';
     G.Audio.play('tick');
     G.Input.clearTaps();
   }
   function closeFind() {
     if (S.screen !== 'menu' || !S.menuMode) return;
+    S.preview = null;
     S.menuMode = null;
     S.filter = null;
     G.Audio.play('tick');
@@ -1018,9 +1037,11 @@
   }
 
   // Menu: one page per world (2 rows of 5). Left/right walk through the levels and flip pages.
-  function updateMenu() {
+  function updateMenu(dt) {
+    if (S.preview) S.preview.t += dt;
     const d = G.Input.next();
     if (!d || !d.fresh) return;
+    S.preview = null; // an arrow key goes back to browsing
     if (S.menuMode === 'pick') {
       // Move around the grid of objects.
       let k = S.pickSel;
@@ -1059,7 +1080,7 @@
   }
 
   function menuPage(delta) {
-    if (S.menuMode === 'pick') return;
+    if (S.menuMode === 'pick' || S.preview) return;
     const view = menuView();
     const page = view.page + delta;
     if (page < 0 || page >= view.pages) return;
@@ -1078,7 +1099,7 @@
     if (S.screen === 'title') {
       if (G.Input.takeTap()) openMenu();
     } else if (S.screen === 'menu') {
-      updateMenu();
+      updateMenu(dt);
     } else if (S.screen === 'play') {
       updatePlay(dt);
     } else if (S.screen === 'exit') {
@@ -1105,6 +1126,8 @@
     PICK_COLS,
     openFind,
     closeFind,
+    previewLevel,
+    closePreview,
     pickFeature,
     // F on the menu opens (or closes) the finder; during play it's the secret key.
     keyF() {
@@ -1129,7 +1152,8 @@
       else if (S.screen === 'win' && S.winT > 1.5) openMenu();
     },
     home() {
-      if (S.screen === 'menu') closeFind();
+      if (S.screen === 'menu' && S.preview) closePreview();
+      else if (S.screen === 'menu') closeFind();
       else if (S.screen === 'play') openMenu(S.levelIndex);
       else if (S.screen === 'win') openMenu();
     },

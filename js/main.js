@@ -31,6 +31,8 @@
     else if (btn === 'home') G.Game.home();
     else if (btn && btn.startsWith('level:')) G.Game.startLevel(Number(btn.slice(6)));
     else if (btn && btn.startsWith('page:')) G.Game.menuPage(Number(btn.slice(5)));
+    else if (btn && btn.startsWith('planet:')) G.Game.previewLevel(Number(btn.slice(7)));
+    else if (btn === 'previewClose') G.Game.closePreview();
     else if (btn === 'find') G.Game.openFind();
     else if (btn === 'findClose') G.Game.closeFind();
     else if (btn && btn.startsWith('feature:')) G.Game.pickFeature(Number(btn.slice(8)));
