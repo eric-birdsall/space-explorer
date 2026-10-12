@@ -16,7 +16,7 @@
     else if (k === 'enter' || k === ' ') G.Game.confirm();
     else if (k === 'escape') G.Game.home();
     else if (k === 'n' && e.shiftKey) G.Game.skip(); // parent shortcut: skip a level
-    else if (k === 'f') G.Game.fart(); // shh - a secret for levels with chasing robots
+    else if (k === 'f') G.Game.keyF(); // menu: the object finder. In play: shh - a secret for levels with chasing robots
   });
 
   canvas.addEventListener('pointerdown', e => {
@@ -31,6 +31,9 @@
     else if (btn === 'home') G.Game.home();
     else if (btn && btn.startsWith('level:')) G.Game.startLevel(Number(btn.slice(6)));
     else if (btn && btn.startsWith('page:')) G.Game.menuPage(Number(btn.slice(5)));
+    else if (btn === 'find') G.Game.openFind();
+    else if (btn === 'findClose') G.Game.closeFind();
+    else if (btn && btn.startsWith('feature:')) G.Game.pickFeature(Number(btn.slice(8)));
     else if (G.Game.S.screen === 'title') G.Game.openMenu();
     else if (G.Game.S.screen === 'win') G.Game.confirm();
   });

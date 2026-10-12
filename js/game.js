@@ -55,6 +55,9 @@
     levelIndex: 0,
     particles: [],
     menuSel: 0,
+    menuMode: null,   // null = worlds, 'pick' = choosing an object to look for, 'list' = levels that have it
+    pickSel: 0,       // highlighted object in the picker
+    filter: null,     // 'list' mode: { id, list } - the object and the levels that contain it
     done: loadDone(),
   };
 
@@ -922,25 +925,133 @@
 
   // ---------- Menu ----------
   // Highlights `sel` if given (e.g. the level just left), else the first unfinished level.
+  // ---------- What's in each level (for the object finder on the menu) ----------
+  // Every kind of thing a level can contain, in the order the picker shows them.
+  const mapHas = chars => level => level.map.some(row => [...row].some(ch => chars.includes(ch)));
+  const obstacleIs = sprite => level => (level.obstacles || []).some(o => o.sprite === sprite);
+  const FEATURES = [
+    { id: 'key', has: mapHas('rgby') },
+    { id: 'gem', has: mapHas('x') },
+    { id: 'crate', has: mapHas('C') },
+    { id: 'slick', has: mapHas('I') },
+    { id: 'pad', has: mapHas('o') },
+    { id: 'button', has: mapHas('+') },
+    { id: 'timer', has: mapHas('d') },
+    { id: 'portal', has: mapHas('123456789') },
+    { id: 'belt', has: mapHas('><^v') },
+    { id: 'oneway', has: mapHas('}{AV') },
+    { id: 'ice', has: mapHas('~') },
+    { id: 'jump', has: mapHas('J') },
+    { id: 'crumbly', has: mapHas('*') },
+    { id: 'colors', has: mapHas('s') },
+    { id: 'lever', has: mapHas('L') },
+    { id: 'mirror', has: mapHas('MW') },
+    { id: 'alien', has: mapHas('a') },
+    { id: 'helmet', has: mapHas('h') },
+    { id: 'dark', has: level => !!level.dark },
+    { id: 'hole', has: mapHas('O') },
+    { id: 'laser', has: level => (level.lasers || []).length > 0 },
+    { id: 'asteroid', has: obstacleIs('asteroid') },
+    { id: 'robot', has: obstacleIs('robot') },
+    { id: 'chaser', has: obstacleIs('chaser') },
+    { id: 'ufo', has: obstacleIs('ufo') },
+    { id: 'arm', has: obstacleIs('arm') },
+    { id: 'comet', has: obstacleIs('comet') },
+  ].filter(f => G.Levels.some(f.has));
+  const LEVEL_FEATURES = G.Levels.map(level => FEATURES.filter(f => f.has(level)).map(f => f.id));
+  const PICK_COLS = 7;
+
   function openMenu(sel) {
     S.screen = 'menu';
     S.particles.length = 0;
     const firstUndone = G.Levels.findIndex(l => !S.done.has(l.id));
     S.menuSel = sel !== undefined ? sel : (firstUndone >= 0 ? firstUndone : 0);
+    // Coming back from a level found with the finder returns to the same list.
+    if (S.menuMode === 'list' && S.filter.list.includes(S.menuSel)) S.menuMode = 'list';
+    else { S.menuMode = null; S.filter = null; }
     G.Input.clearTaps();
+  }
+
+  // The finder: pick an object, then see every level that has one.
+  function openFind() {
+    if (S.screen !== 'menu') return;
+    S.menuMode = 'pick';
+    G.Audio.play('tick');
+    G.Input.clearTaps();
+  }
+  function closeFind() {
+    if (S.screen !== 'menu' || !S.menuMode) return;
+    S.menuMode = null;
+    S.filter = null;
+    G.Audio.play('tick');
+    G.Input.clearTaps();
+  }
+  function pickFeature(n) {
+    const f = FEATURES[n];
+    if (S.screen !== 'menu' || !f) return;
+    const list = [];
+    LEVEL_FEATURES.forEach((ids, i) => { if (ids.includes(f.id)) list.push(i); });
+    S.pickSel = n;
+    S.filter = { id: f.id, list };
+    S.menuMode = 'list';
+    S.menuSel = list[0];
+    G.Audio.play('start');
+    G.Input.clearTaps();
+  }
+
+  // What the menu is showing: one page of levels, from a world or from the finder's list.
+  function menuView() {
+    if (S.menuMode === 'list') {
+      const list = S.filter.list;
+      const page = Math.floor(Math.max(0, list.indexOf(S.menuSel)) / PER_PAGE);
+      return {
+        feature: S.filter.id, all: list, total: list.length,
+        page, pages: Math.ceil(list.length / PER_PAGE),
+        levels: list.slice(page * PER_PAGE, (page + 1) * PER_PAGE),
+      };
+    }
+    const page = G.worldOf(S.menuSel);
+    const world = G.Worlds[page];
+    const levels = [];
+    for (let i = world.start; i < world.start + world.size; i++) levels.push(i);
+    return { name: world.name, all: null, page, pages: G.Worlds.length, levels };
   }
 
   // Menu: one page per world (2 rows of 5). Left/right walk through the levels and flip pages.
   function updateMenu() {
     const d = G.Input.next();
     if (!d || !d.fresh) return;
+    if (S.menuMode === 'pick') {
+      // Move around the grid of objects.
+      let k = S.pickSel;
+      if (d.name === 'left') k = Math.max(0, k - 1);
+      else if (d.name === 'right') k = Math.min(FEATURES.length - 1, k + 1);
+      else if (d.name === 'up' && k - PICK_COLS >= 0) k -= PICK_COLS;
+      else if (d.name === 'down' && k + PICK_COLS < FEATURES.length) k += PICK_COLS;
+      if (k !== S.pickSel) {
+        S.pickSel = k;
+        G.Audio.play('tick');
+      }
+      return;
+    }
     const n = G.Levels.length;
     let sel = S.menuSel;
-    const world = G.Worlds[G.worldOf(sel)];
-    if (d.name === 'left') sel = Math.max(0, sel - 1);
-    else if (d.name === 'right') sel = Math.min(n - 1, sel + 1);
-    else if (d.name === 'up' && sel - MENU_COLS >= world.start) sel -= MENU_COLS;
-    else if (d.name === 'down' && sel + MENU_COLS < world.start + world.size) sel += MENU_COLS;
+    const view = menuView();
+    if (view.all) {
+      // Finder list: step through just the levels that have the object.
+      const k = view.all.indexOf(sel);
+      const inPage = view.levels.indexOf(sel);
+      if (d.name === 'left') sel = view.all[Math.max(0, k - 1)];
+      else if (d.name === 'right') sel = view.all[Math.min(view.all.length - 1, k + 1)];
+      else if (d.name === 'up' && inPage - MENU_COLS >= 0) sel = view.levels[inPage - MENU_COLS];
+      else if (d.name === 'down' && inPage + MENU_COLS < view.levels.length) sel = view.levels[inPage + MENU_COLS];
+    } else {
+      const world = G.Worlds[view.page];
+      if (d.name === 'left') sel = Math.max(0, sel - 1);
+      else if (d.name === 'right') sel = Math.min(n - 1, sel + 1);
+      else if (d.name === 'up' && sel - MENU_COLS >= world.start) sel -= MENU_COLS;
+      else if (d.name === 'down' && sel + MENU_COLS < world.start + world.size) sel += MENU_COLS;
+    }
     if (sel !== S.menuSel) {
       S.menuSel = sel;
       G.Audio.play('tick');
@@ -948,9 +1059,11 @@
   }
 
   function menuPage(delta) {
-    const page = G.worldOf(S.menuSel) + delta;
-    if (page < 0 || page >= G.Worlds.length) return;
-    S.menuSel = G.Worlds[page].start;
+    if (S.menuMode === 'pick') return;
+    const view = menuView();
+    const page = view.page + delta;
+    if (page < 0 || page >= view.pages) return;
+    S.menuSel = view.all ? view.all[page * PER_PAGE] : G.Worlds[page].start;
     G.Audio.play('tick');
   }
 
@@ -986,6 +1099,17 @@
     VIEW_W,
     VIEW_H,
     menuPage,
+    menuView,
+    FEATURES,
+    LEVEL_FEATURES,
+    PICK_COLS,
+    openFind,
+    closeFind,
+    pickFeature,
+    // F on the menu opens (or closes) the finder; during play it's the secret key.
+    keyF() {
+      if (S.screen === 'menu') { if (S.menuMode) closeFind(); else openFind(); } else fart();
+    },
     update,
     playerPos,
     cratePos,
@@ -1000,11 +1124,13 @@
     confirm() {
       if (S.screen === 'play') useAction();
       else if (S.screen === 'title') openMenu();
+      else if (S.screen === 'menu' && S.menuMode === 'pick') pickFeature(S.pickSel);
       else if (S.screen === 'menu') startLevel(S.menuSel);
       else if (S.screen === 'win' && S.winT > 1.5) openMenu();
     },
     home() {
-      if (S.screen === 'play') openMenu(S.levelIndex);
+      if (S.screen === 'menu') closeFind();
+      else if (S.screen === 'play') openMenu(S.levelIndex);
       else if (S.screen === 'win') openMenu();
     },
     // Back to the last checkpoint beacon, or the start of the level if there isn't one.

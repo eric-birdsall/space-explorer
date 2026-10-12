@@ -45,6 +45,7 @@ Progress is saved separately on each device. If there is no sound on an iPad, ch
 | Space | Turn the mirror next to the astronaut |
 | Enter / Space | Start the selected level in the menu |
 | Esc | Back to the level menu |
+| F | In the level menu: open or close the object finder |
 | R | Restart the current level (in an expedition: back to the last checkpoint) |
 | Shift + R | Restart an expedition from the very beginning (a shortcut for parents) |
 | M | Sound on or off |
@@ -78,6 +79,13 @@ After the title screen, the menu shows one world per page, with one numbered pla
 - Arrow keys move between planets and flip to the next or previous world at the ends of a page. The ◀ ▶ arrows at the sides can be clicked to flip pages.
 - Finished planets get a gold star, and progress is saved in the browser between visits.
 - Finishing a level leads straight into the next one.
+
+### Finding levels by what's in them
+
+Kids often want "the one with the shield". Two things on the level menu help, both using pictures only:
+
+- **What's in this level:** a row of small pictures under the planets shows everything in the selected level.
+- **The finder:** the yellow magnifying-glass button in the top-left corner (or **F**) opens a grid with a picture of every kind of object. Pick one, and the menu shows only the levels that contain it. The red ✕ button (or **Esc**) goes back to the worlds.
 
 ### Big levels
 

@@ -1381,13 +1381,278 @@
     ['#b86bff', '#7a3fc0'], ['#4fe3ff', '#2a9bb8'], ['#ffd32a', '#c49a00'], ['#ff9ff3', '#c066b8'],
   ];
 
-  // Menu page positions: 2 rows of 5 planets per world.
-  function menuPos(i) {
+  // Menu page positions: up to 2 rows of 5 planets. `k` is the planet's place on the page.
+  function menuPos(k) {
     const cols = G.Game.MENU_COLS;
-    const j = i - G.Worlds[G.worldOf(i)].start;
-    const col = j % cols;
-    const row = Math.floor(j / cols);
+    const col = k % cols;
+    const row = Math.floor(k / cols);
     return { x: canvas.width / 2 + (col - (cols - 1) / 2) * 150, y: 250 + row * 170 };
+  }
+
+  // ---------- Object pictures (for the finder and the "what's in this level" strip) ----------
+  const ICON_SPRITES = {
+    key: 'key_y', gem: 'key_x', crate: 'crate', slick: 'crate_slick', pad: 'pad_on', button: 'button_on',
+    timer: 'timer_on', ice: 'ice', alien: 'alien', helmet: 'helmet', dark: 'flashlight',
+    asteroid: 'asteroid', robot: 'robot_0', chaser: 'chaser_0', ufo: 'ufo_0',
+  };
+
+  // Things that are drawn rather than sprites get a simple picture here, in a 64 x 64 box.
+  const ICON_DRAW = {
+    portal() {
+      const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 29);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.4, '#b86bff');
+      g.addColorStop(1, 'rgba(184,107,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(2, 2, 60, 60);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(32, 32, 16, S.time * 3, S.time * 3 + 4);
+      ctx.stroke();
+    },
+    belt() {
+      ctx.fillStyle = '#2a2f45';
+      roundRect(4, 12, 56, 40, 8);
+      ctx.fill();
+      ctx.fillStyle = '#ffd32a';
+      for (const ox of [12, 32]) {
+        ctx.beginPath();
+        ctx.moveTo(ox, 20); ctx.lineTo(ox + 8, 20); ctx.lineTo(ox + 18, 32); ctx.lineTo(ox + 8, 44); ctx.lineTo(ox, 44); ctx.lineTo(ox + 10, 32);
+        ctx.fill();
+      }
+    },
+    oneway() {
+      ctx.fillStyle = '#4fe3ff';
+      for (const ox of [10, 32]) {
+        ctx.beginPath();
+        ctx.moveTo(ox, 14); ctx.lineTo(ox + 8, 14); ctx.lineTo(ox + 22, 32); ctx.lineTo(ox + 8, 50); ctx.lineTo(ox, 50); ctx.lineTo(ox + 14, 32);
+        ctx.fill();
+      }
+    },
+    jump() {
+      ctx.fillStyle = '#161a2e';
+      ctx.beginPath(); ctx.ellipse(32, 50, 25, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#6e6e7e';
+      ctx.beginPath(); ctx.ellipse(32, 48, 22, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#c3cbe0';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(22, 46); ctx.lineTo(42, 40); ctx.lineTo(22, 33); ctx.lineTo(42, 27); ctx.lineTo(32, 22);
+      ctx.stroke();
+      ctx.fillStyle = '#161a2e';
+      ctx.beginPath(); ctx.ellipse(32, 19, 26, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff9f1c';
+      ctx.beginPath(); ctx.ellipse(32, 17, 23, 8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd32a';
+      ctx.beginPath(); ctx.ellipse(32, 16, 12, 4, 0, 0, Math.PI * 2); ctx.fill();
+    },
+    crumbly() {
+      ctx.fillStyle = '#161a2e';
+      roundRect(6, 6, 52, 52, 6);
+      ctx.fill();
+      ctx.fillStyle = '#6a7699';
+      roundRect(9, 9, 46, 46, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#161a2e';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(12, 24); ctx.lineTo(26, 30); ctx.lineTo(22, 44); ctx.moveTo(26, 30); ctx.lineTo(40, 22); ctx.lineTo(52, 30); ctx.moveTo(40, 22); ctx.lineTo(44, 10); ctx.moveTo(34, 40); ctx.lineTo(48, 50);
+      ctx.stroke();
+    },
+    colors() {
+      ctx.fillStyle = '#161a2e';
+      ctx.beginPath(); ctx.arc(32, 32, 26, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff6fc8';
+      ctx.beginPath(); ctx.arc(32, 32, 22, Math.PI / 2, Math.PI * 1.5); ctx.fill();
+      ctx.fillStyle = '#4fe3ff';
+      ctx.beginPath(); ctx.arc(32, 32, 22, -Math.PI / 2, Math.PI / 2); ctx.fill();
+    },
+    lever() {
+      ctx.fillStyle = '#161a2e';
+      ctx.fillRect(8, 42, 48, 18);
+      ctx.fillStyle = '#8a93ad';
+      ctx.fillRect(10, 44, 44, 14);
+      ctx.save();
+      ctx.translate(32, 48);
+      ctx.rotate(0.6);
+      ctx.fillStyle = '#161a2e';
+      ctx.fillRect(-5, -36, 10, 36);
+      ctx.fillStyle = '#c3cbe0';
+      ctx.fillRect(-3, -34, 6, 34);
+      ctx.fillStyle = '#ff4757';
+      ctx.beginPath(); ctx.arc(0, -36, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    },
+    mirror() {
+      ctx.fillStyle = '#161a2e';
+      ctx.beginPath(); ctx.arc(32, 36, 22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#4a5068';
+      ctx.beginPath(); ctx.arc(32, 36, 18, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.translate(32, 32);
+      ctx.rotate(-Math.PI / 4);
+      ctx.fillStyle = '#161a2e';
+      ctx.fillRect(-30, -8, 60, 16);
+      ctx.fillStyle = '#bfe6ff';
+      ctx.fillRect(-28, -6, 56, 12);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(-22, -4, 24, 4);
+      ctx.restore();
+    },
+    hole() {
+      const g = ctx.createRadialGradient(32, 32, 10, 32, 32, 30);
+      g.addColorStop(0, '#000000');
+      g.addColorStop(0.45, '#000000');
+      g.addColorStop(0.6, '#b86bff');
+      g.addColorStop(1, 'rgba(184,107,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 64, 64);
+    },
+    laser() {
+      ctx.fillStyle = 'rgba(255,71,87,0.35)';
+      ctx.fillRect(10, 24, 44, 16);
+      ctx.fillStyle = '#ff4757';
+      ctx.fillRect(10, 28, 44, 8);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(10, 31, 44, 2);
+      for (const x of [2, 48]) {
+        ctx.fillStyle = '#161a2e';
+        ctx.fillRect(x, 18, 14, 28);
+        ctx.fillStyle = '#8a93ad';
+        ctx.fillRect(x + 2, 20, 10, 24);
+      }
+    },
+    arm() {
+      ctx.save();
+      ctx.translate(32, 32);
+      ctx.rotate(S.time * 1.2);
+      ctx.fillStyle = '#161a2e';
+      ctx.fillRect(-31, -9, 62, 18);
+      ctx.fillStyle = '#ff9f1c';
+      ctx.fillRect(-28, -6, 56, 12);
+      ctx.fillStyle = '#ffd32a';
+      for (let i = -28; i < 28; i += 18) ctx.fillRect(i, -6, 8, 12);
+      ctx.restore();
+      ctx.fillStyle = '#161a2e';
+      ctx.beginPath(); ctx.arc(32, 32, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#c3cbe0';
+      ctx.beginPath(); ctx.arc(32, 32, 8, 0, Math.PI * 2); ctx.fill();
+    },
+    comet() {
+      [[10, 12, 6], [18, 20, 9], [27, 29, 12]].forEach(([x, y, r], i) => {
+        ctx.globalAlpha = 0.35 + i * 0.2;
+        ctx.fillStyle = i % 2 ? '#ffd32a' : '#ff9f1c';
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#161a2e';
+      ctx.beginPath(); ctx.arc(42, 44, 17, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffd32a';
+      ctx.beginPath(); ctx.arc(42, 44, 14, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(38, 40, 5, 0, Math.PI * 2); ctx.fill();
+    },
+  };
+
+  function drawIcon(id, x, y, size) {
+    if (ICON_SPRITES[id]) { spr(ICON_SPRITES[id], x, y, size); return; }
+    const fn = ICON_DRAW[id];
+    if (!fn) return;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 64, size / 64);
+    fn();
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  // Magnifying glass, centred on (cx, cy).
+  function drawMagnifier(cx, cy, r, color) {
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = r * 0.42;
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.35, cy + r * 0.35);
+    ctx.lineTo(cx + r, cy + r);
+    ctx.stroke();
+    ctx.lineWidth = r * 0.3;
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.2, cy - r * 0.2, r * 0.62, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+  }
+
+  // Round button in the top-left corner of the menu: the finder, or a cross to close it.
+  function drawFindButton(closing) {
+    const cx = 56;
+    const cy = 52;
+    const r = 36;
+    const pulse = closing ? 0 : Math.sin(S.time * 3) * 2;
+    ctx.fillStyle = closing ? '#b8323f' : '#c49a00';
+    ctx.beginPath(); ctx.arc(cx, cy + 5, r + pulse, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = closing ? '#ff4757' : '#ffd32a';
+    ctx.beginPath(); ctx.arc(cx, cy, r + pulse, 0, Math.PI * 2); ctx.fill();
+    if (closing) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx - 14, cy - 14); ctx.lineTo(cx + 14, cy + 14);
+      ctx.moveTo(cx + 14, cy - 14); ctx.lineTo(cx - 14, cy + 14);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+    } else {
+      drawMagnifier(cx - 2, cy - 2, 18, '#161a2e');
+    }
+    buttons.push({ name: closing ? 'findClose' : 'find', x: cx - r - 10, y: cy - r - 10, w: r * 2 + 20, h: r * 2 + 20 });
+  }
+
+  // The finder's first page: every kind of object. Tap one to see the levels that have it.
+  function drawPicker() {
+    const list = G.Game.FEATURES;
+    const cols = G.Game.PICK_COLS;
+    const cw = 116;
+    const ch = 108;
+    const rows = Math.ceil(list.length / cols);
+    const x0 = canvas.width / 2 - (cols * cw) / 2;
+    const y0 = 128;
+    drawMagnifier(canvas.width / 2 - 4, 56, 30, '#ffd32a');
+    list.forEach((f, n) => {
+      const col = n % cols;
+      const row = Math.floor(n / cols);
+      // Centre a short last row.
+      const inRow = row === rows - 1 ? list.length - row * cols : cols;
+      const x = x0 + col * cw + ((cols - inRow) * cw) / 2;
+      const y = y0 + row * ch;
+      const selected = n === S.pickSel;
+      ctx.fillStyle = selected ? 'rgba(255,240,160,0.28)' : 'rgba(255,255,255,0.08)';
+      roundRect(x + 6, y + 6, cw - 12, ch - 12, 18);
+      ctx.fill();
+      if (selected) {
+        ctx.strokeStyle = `rgba(255,240,160,${0.6 + 0.4 * Math.sin(S.time * 5)})`;
+        ctx.lineWidth = 4;
+        roundRect(x + 6, y + 6, cw - 12, ch - 12, 18);
+        ctx.stroke();
+      }
+      const bob = selected ? Math.sin(S.time * 5) * 3 : 0;
+      drawIcon(f.id, x + cw / 2 - 36, y + ch / 2 - 36 + bob, 72);
+      buttons.push({ name: `feature:${n}`, x, y, w: cw, h: ch });
+    });
+  }
+
+  // A row of small pictures: everything that's in one level.
+  function drawFeatureStrip(levelIndex, cy) {
+    const ids = G.Game.LEVEL_FEATURES[levelIndex];
+    if (!ids.length) return;
+    const size = 36;
+    const gap = 8;
+    const w = ids.length * (size + gap) - gap + 28;
+    const x = canvas.width / 2 - w / 2;
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    roundRect(x, cy - size / 2 - 7, w, size + 14, (size + 14) / 2);
+    ctx.fill();
+    ids.forEach((id, k) => drawIcon(id, x + 14 + k * (size + gap), cy - size / 2, size));
   }
 
   function drawPlanet(i, x, y, r, selected, labelled = true) {
@@ -1439,13 +1704,29 @@
 
   function drawMenu() {
     drawStarfield();
-    const page = G.worldOf(S.menuSel);
-    const pages = G.Worlds.length;
-    const world = G.Worlds[page];
+    if (S.menuMode === 'pick') {
+      drawFindButton(true);
+      drawPicker();
+      if (!G.touch) {
+        ctx.font = '16px "Trebuchet MS", Verdana, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.textAlign = 'right';
+        ctx.fillText('Pick something to see the levels that have it · Esc: back', canvas.width - 16, canvas.height - 16);
+      }
+      return;
+    }
+    const view = G.Game.menuView();
+    const { page, pages } = view;
+    drawFindButton(!!view.feature);
 
-    // World name and page dots
-    const name = world.name;
-    bigText(name, canvas.width / 2, 60, 44, ['#4fe3ff', '#d6d6e6', '#ff9f6a', '#bff4ff', '#d6b8ff'][page % 5]);
+    // Header: the world's name, or the object being looked for, then the page dots.
+    if (view.feature) {
+      const bob = Math.sin(S.time * 3) * 3;
+      drawMagnifier(canvas.width / 2 - 62, 54, 20, '#ffd32a');
+      drawIcon(view.feature, canvas.width / 2 - 20, 14 + bob, 80);
+    } else {
+      bigText(view.name, canvas.width / 2, 60, 44, ['#4fe3ff', '#d6d6e6', '#ff9f6a', '#bff4ff', '#d6b8ff'][page % 5]);
+    }
     for (let p = 0; p < pages; p++) {
       ctx.fillStyle = p === page ? '#ffffff' : 'rgba(255,255,255,0.3)';
       ctx.beginPath();
@@ -1453,13 +1734,13 @@
       ctx.fill();
     }
 
-    for (let i = world.start; i < world.start + world.size; i++) {
-      const p = menuPos(i);
+    view.levels.forEach((i, k) => {
+      const p = menuPos(k);
       const selected = i === S.menuSel;
       drawPlanet(i, p.x, p.y, selected ? 44 : 38, selected);
       buttons.push({ name: `level:${i}`, x: p.x - 60, y: p.y - 60, w: 120, h: 120 });
-    }
-    const sp = menuPos(S.menuSel);
+    });
+    const sp = menuPos(Math.max(0, view.levels.indexOf(S.menuSel)));
     const bob = Math.sin(S.time * 4) * 5;
     spr(`astro_down_${Math.floor(S.time * 4) % 3}`, sp.x - 24, sp.y - 112 + bob, 48);
 
@@ -1469,28 +1750,34 @@
     if (page > 0) buttons.push({ name: 'page:-1', x: 0, y: 270, w: 80, h: 120 });
     if (page < pages - 1) buttons.push({ name: 'page:1', x: canvas.width - 80, y: 270, w: 80, h: 120 });
 
+    // What's in the selected level
+    drawFeatureStrip(S.menuSel, 500);
+
     // "Go" key, pulsing
     const cx = canvas.width / 2;
     const pulse = 1 + Math.sin(S.time * 5) * 0.04;
     const w = 190 * pulse;
-    const h = 64 * pulse;
+    const h = 60 * pulse;
+    const gy = 572;
     ctx.fillStyle = '#c49a00';
-    roundRect(cx - w / 2, 560 - h / 2 + 6, w, h, 14);
+    roundRect(cx - w / 2, gy - h / 2 + 6, w, h, 14);
     ctx.fill();
     ctx.fillStyle = '#ffd32a';
-    roundRect(cx - w / 2, 560 - h / 2, w, h, 14);
+    roundRect(cx - w / 2, gy - h / 2, w, h, 14);
     ctx.fill();
     ctx.font = 'bold 30px "Trebuchet MS", Verdana, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#161a2e';
-    ctx.fillText('GO  ⏎', cx, 561);
-    buttons.push({ name: `level:${S.menuSel}`, x: cx - w / 2, y: 560 - h / 2, w, h });
+    ctx.fillText('GO  ⏎', cx, gy + 1);
+    buttons.push({ name: `level:${S.menuSel}`, x: cx - w / 2, y: gy - h / 2, w, h });
 
-    ctx.font = '16px "Trebuchet MS", Verdana, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    ctx.textAlign = 'right';
-    ctx.fillText('Arrow keys: pick a planet · Enter or Space: go · Esc: back here', canvas.width - 16, canvas.height - 16);
+    if (!G.touch) {
+      ctx.font = '16px "Trebuchet MS", Verdana, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.textAlign = 'right';
+      ctx.fillText('Arrows: pick · Enter: go · F: find', canvas.width - 16, canvas.height - 16);
+    }
   }
 
   // When the goal is off screen (big levels), a pulsing arrow at the edge points to it.
