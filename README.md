@@ -31,9 +31,16 @@ Launched from its home-screen icon, the game runs full screen and works offline 
 
 On touch screens the game shows its own controls:
 
-- **Arrow pad:** hold an arrow to keep walking. A thumb can slide from one arrow to the next without lifting. The game shrinks a little so the pad never covers the level: it sits on the right in landscape and below the game in portrait.
+- **Round arrow pad:** tap a wedge for one step, or hold it to keep walking. A thumb can slide around the ring from one direction to the next without lifting.
 - **Round yellow button:** shows ▶ on the title, menu and win screens. Next to a mirror it becomes a ↻ "turn" button.
-- Everything else is tapped directly: planets in the menu, the level badge, and the buttons in the top-right corner.
+- **🏠 🔊 ↻ buttons and the level badge** move off the level, so they never cover it.
+- Everything else is tapped directly, like the planets in the menu.
+
+Where the controls go depends on the screen:
+
+- **iPad, landscape:** the game fills the top of the screen and a bar below it holds the buttons and the level badge. The see-through pad sits over the bottom-right corner. The game is sized so the pad only ever covers the level's outer wall, never anything you need to see.
+- **Phone, landscape:** the buttons and the level badge are in a column on the left, and the pad is on the right.
+- **Portrait:** the game is on top, then the buttons and badge, then the pad.
 
 Progress is saved separately on each device. If there is no sound on an iPad, check its silent mode and volume.
 
