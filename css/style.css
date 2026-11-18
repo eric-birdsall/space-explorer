@@ -23,9 +23,14 @@ body {
 }
 
 /* ---------- Touch screens (iPad, phones) ----------
-   js/touch.js adds the "touch" class. The game shrinks a little to leave a gutter for the
-   on-screen arrows, so they never cover the level: on the right in landscape, below in portrait. */
-#controls {
+   js/touch.js adds the "touch" class and places the game and its controls (see layout() there):
+   - data-layout="bar" (iPad landscape): the game on top, a bar below with the buttons and level
+     badge. The see-through round pad hangs over the bottom-right corner, sized so it only ever
+     covers the level's outer wall.
+   - data-layout="sides" (phone landscape): buttons and badge on the left, pad on the right.
+   - data-layout="stack" (portrait): the game on top, then the buttons row, then the pad. */
+#controls,
+#hud {
   display: none;
 }
 
@@ -42,94 +47,85 @@ html.touch body {
 }
 
 html.touch body {
-  --vh: 100vh;
-  --gutter: clamp(170px, 20vw, 240px);
-  --safe-x: calc(env(safe-area-inset-left, 0px) + env(safe-area-inset-right, 0px));
-  --safe-y: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+  /* The padding keeps clear of notches and the home bar; js/touch.js reads it back. */
   box-sizing: border-box;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
 }
 
-@supports (height: 100dvh) {
-  html.touch body {
-    --vh: 100dvh; /* the part of the screen Safari's toolbars leave free */
-  }
+html.touch #game,
+html.touch #hud,
+html.touch #dpad,
+html.touch #action {
+  position: fixed;
+  margin: 0;
+  touch-action: none;
+}
+
+html.touch #controls,
+html.touch #hud {
+  display: block;
 }
 
 html.touch #game {
-  --room: calc(100vw - var(--gutter) - var(--safe-x));
-  width: min(var(--room), calc((var(--vh) - var(--safe-y)) * 1.5));
-  height: auto;
   aspect-ratio: 3 / 2;
-  flex: none;
-  touch-action: none;
 }
 
-html.touch #controls {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: calc(var(--gutter) * 0.14);
-  width: var(--gutter);
-  flex: none;
-  touch-action: none;
-}
-
+/* ---------- Round arrow pad ---------- */
 #dpad {
-  position: relative;
-  width: calc(var(--gutter) - 20px);
-  aspect-ratio: 1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(3, 1fr);
-  gap: 5%;
-  touch-action: none;
+  z-index: 2;
+  transition: opacity 0.15s;
 }
 
-/* A chunky keyboard-style key with a dark arrow, like the ones on the title screen. */
-.arrow {
-  position: relative;
-  border-radius: 22%;
-  background: #f4f6ff;
-  box-shadow: 0 6px 0 #8a93ad;
-  pointer-events: none; /* #dpad handles the touches, so a thumb can slide between arrows */
+#dpad svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none; /* only the round .pad-hit circle takes touches, not the square's corners */
 }
 
-.arrow::after {
-  content: '';
-  position: absolute;
-  inset: 26%;
-  background: #161a2e;
-  clip-path: polygon(50% 8%, 96% 86%, 4% 86%);
+#dpad .pad-hit {
+  fill: transparent;
+  pointer-events: auto;
 }
 
-.arrow[data-key='ArrowUp'] { grid-area: 1 / 2; }
-.arrow[data-key='ArrowLeft'] { grid-area: 2 / 1; }
-.arrow[data-key='ArrowRight'] { grid-area: 2 / 3; }
-.arrow[data-key='ArrowDown'] { grid-area: 3 / 2; }
-.arrow[data-key='ArrowLeft']::after { transform: rotate(-90deg); }
-.arrow[data-key='ArrowRight']::after { transform: rotate(90deg); }
-.arrow[data-key='ArrowDown']::after { transform: rotate(180deg); }
-
-.arrow.down {
-  background: #ffd32a;
-  box-shadow: 0 2px 0 #c49a00;
-  transform: translateY(4px);
+/* On iPads the pad sits over the corner of the level, so it's see-through until pressed. */
+html[data-layout='bar'] #dpad {
+  opacity: 0.6;
 }
+
+html[data-layout='bar'] #dpad.active {
+  opacity: 0.95;
+}
+
+.pad-shadow { fill: #8a93ad; }
+.pad-base { fill: #2a3152; stroke: #070916; stroke-width: 4; }
+.wedge-edge { fill: #8a93ad; }
+.wedge-top { fill: #f4f6ff; stroke: #2a3152; stroke-width: 5; stroke-linejoin: round; }
+.wedge-arrow { fill: #161a2e; }
+.wedge.down .wedge-top { fill: #ffd32a; }
+.wedge.down .wedge-edge { fill: #c49a00; }
+.wedge.down .wedge-cap { transform: translateY(3px); } /* in the wedge's own frame: pressed in */
+
+.hub { transition: transform 0.08s ease-out; }
+.hub-shadow { fill: #111530; }
+.hub-top { fill: #3a4270; stroke: #f4f6ff; stroke-width: 4; }
+.hub-dot { fill: #5a6599; }
+#dpad[data-dir='ArrowUp'] .hub { transform: translate(0, -9px); }
+#dpad[data-dir='ArrowDown'] .hub { transform: translate(0, 9px); }
+#dpad[data-dir='ArrowLeft'] .hub { transform: translate(-9px, 0); }
+#dpad[data-dir='ArrowRight'] .hub { transform: translate(9px, 0); }
 
 /* Round action button: "go" on the menus, "turn the mirror" next to a mirror. */
 #action {
-  width: calc(var(--gutter) * 0.46);
-  aspect-ratio: 1;
+  z-index: 2;
   padding: 0;
   border: 0;
   border-radius: 50%;
   background: #ffd32a;
   box-shadow: 0 6px 0 #c49a00;
   color: #161a2e;
-  touch-action: none;
-  visibility: hidden; /* keeps its space, so the arrows never jump around */
+  visibility: hidden;
 }
 
 #action.show {
@@ -147,22 +143,4 @@ html.touch #controls {
   display: block;
   margin: auto;
   pointer-events: none;
-}
-
-@media (orientation: portrait) {
-  html.touch body {
-    flex-direction: column;
-    --gutter: clamp(170px, 42vw, 300px);
-  }
-
-  html.touch #game {
-    width: min(calc(100vw - var(--safe-x)), calc((var(--vh) - var(--safe-y) - var(--gutter) - 24px) * 1.5));
-  }
-
-  html.touch #controls {
-    flex: 1;
-    flex-direction: row;
-    justify-content: space-evenly;
-    width: 100%;
-  }
 }

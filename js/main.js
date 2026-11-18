@@ -19,13 +19,8 @@
     else if (k === 'f') G.Game.keyF(); // menu: the object finder. In play: shh - a secret for levels with chasing robots
   });
 
-  canvas.addEventListener('pointerdown', e => {
-    G.Audio.ensure();
-    G.Audio.startMusic();
-    const r = canvas.getBoundingClientRect();
-    const x = ((e.clientX - r.left) * canvas.width) / r.width;
-    const y = ((e.clientY - r.top) * canvas.height) / r.height;
-    const btn = G.Render.hitButton(x, y);
+  // What a tapped or clicked button does. The touch-screen HUD canvas uses this too (js/touch.js).
+  G.pressButton = btn => {
     if (btn === 'mute') G.Audio.toggleMute();
     else if (btn === 'restart') G.Game.restart();
     else if (btn === 'home') G.Game.home();
@@ -36,7 +31,18 @@
     else if (btn === 'find') G.Game.openFind();
     else if (btn === 'findClose') G.Game.closeFind();
     else if (btn && btn.startsWith('feature:')) G.Game.pickFeature(Number(btn.slice(8)));
-    else if (G.Game.S.screen === 'title') G.Game.openMenu();
+    else return false;
+    return true;
+  };
+
+  canvas.addEventListener('pointerdown', e => {
+    G.Audio.ensure();
+    G.Audio.startMusic();
+    const r = canvas.getBoundingClientRect();
+    const x = ((e.clientX - r.left) * canvas.width) / r.width;
+    const y = ((e.clientY - r.top) * canvas.height) / r.height;
+    if (G.pressButton(G.Render.hitButton(x, y))) return;
+    if (G.Game.S.screen === 'title') G.Game.openMenu();
     else if (G.Game.S.screen === 'win') G.Game.confirm();
   });
 

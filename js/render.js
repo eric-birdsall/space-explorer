@@ -1221,28 +1221,34 @@
     ctx.fillRect(x + s * 0.43, y + s * 0.6, s * 0.14, s * 0.2);
   }
 
-  function drawButtons() {
-    const s = 48;
-    const y = 8;
+  // Home / sound / restart, whichever make sense on this screen.
+  function hudButtonNames() {
     const inPlay = S.screen === 'play';
-    const defs = [
+    return [
       { name: 'home', show: inPlay || S.screen === 'win' },
       { name: 'mute', show: true },
       { name: 'restart', show: inPlay },
-    ].filter(b => b.show);
-    defs.forEach((b, i) => {
-      const x = canvas.width - (defs.length - i) * (s + 10);
-      const stuck = b.name === 'restart' && S.stuck;
-      const pulse = 0.5 + 0.5 * Math.sin(S.time * 6);
-      ctx.fillStyle = stuck ? `rgba(255,${160 + pulse * 60},40,${0.7 + pulse * 0.3})` : 'rgba(10,12,30,0.55)';
-      roundRect(x, y, s, s, 12);
-      ctx.fill();
-      if (stuck) sparkle(x + 6, y + s - 6, 6 + pulse * 4, '#ffffff');
-      if (b.name === 'mute') drawSpeakerIcon(x, y, s, G.Audio.isMuted());
-      else if (b.name === 'home') drawHomeIcon(x, y, s);
-      else drawRestartIcon(x, y, s);
-      buttons.push({ name: b.name, x, y, w: s, h: s });
-    });
+    ].filter(b => b.show).map(b => b.name);
+  }
+
+  function drawHudButton(name, x, y, s, list) {
+    const stuck = name === 'restart' && S.stuck;
+    const pulse = 0.5 + 0.5 * Math.sin(S.time * 6);
+    ctx.fillStyle = stuck ? `rgba(255,${160 + pulse * 60},40,${0.7 + pulse * 0.3})` : 'rgba(10,12,30,0.55)';
+    roundRect(x, y, s, s, 12);
+    ctx.fill();
+    if (stuck) sparkle(x + 6, y + s - 6, 6 + pulse * 4, '#ffffff');
+    if (name === 'mute') drawSpeakerIcon(x, y, s, G.Audio.isMuted());
+    else if (name === 'home') drawHomeIcon(x, y, s);
+    else drawRestartIcon(x, y, s);
+    list.push({ name, x, y, w: s, h: s });
+  }
+
+  // Top-right corner of the game (keyboard and mouse; touch screens use the HUD canvas instead).
+  function drawButtons() {
+    const s = 48;
+    const names = hudButtonNames();
+    names.forEach((name, i) => drawHudButton(name, canvas.width - (names.length - i) * (s + 10), 8, s, buttons));
   }
 
   function drawInventory() {
@@ -1261,20 +1267,25 @@
     items.forEach((c, i) => spr(c === 'f' ? 'fruit' : `key_${c}`, 16 + i * size, 8, size));
   }
 
-  // Bottom-center badge: this level's planet and number. Clicking it opens the level menu.
-  function drawLevelBadge() {
-    const label = `Level ${S.levelIndex + 1}`;
-    const total = `/ ${G.Levels.length}`;
+  // Badge with this level's planet and number. Tapping it opens the level menu.
+  // `compact` leaves out the word "Level" and the total, for narrow rows (portrait phones).
+  const BADGE_H = 52;
+  function badgeLayout(compact) {
+    const label = compact ? `${S.levelIndex + 1}` : `Level ${S.levelIndex + 1}`;
+    const total = compact ? '' : `/ ${G.Levels.length}`;
     const big = 'bold 26px "Trebuchet MS", Verdana, sans-serif';
     const small = 'bold 16px "Trebuchet MS", Verdana, sans-serif';
     ctx.font = big;
     const lw = ctx.measureText(label).width;
     ctx.font = small;
-    const tw = ctx.measureText(total).width;
-    const h = 52;
-    const w = 58 + lw + 6 + tw + 18 + 22 + 16; // planet, label, total, gap, grid icon, padding
-    const x = canvas.width / 2 - w / 2;
-    const y = canvas.height - h - 6;
+    const tw = total ? ctx.measureText(total).width + 6 : 0;
+    const w = 58 + lw + tw + 18 + 22 + 16; // planet, label, total, gap, grid icon, padding
+    return { label, total, big, small, lw, w };
+  }
+
+  function drawLevelBadge(x, y, compact, list) {
+    const { label, total, big, small, lw, w } = badgeLayout(compact);
+    const h = BADGE_H;
     ctx.fillStyle = 'rgba(10,12,30,0.7)';
     roundRect(x, y, w, h, h / 2);
     ctx.fill();
@@ -1285,9 +1296,11 @@
     ctx.font = big;
     ctx.fillStyle = '#ffffff';
     ctx.fillText(label, x + 58, y + h / 2 + 1);
-    ctx.font = small;
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.fillText(total, x + 58 + lw + 6, y + h / 2 + 3);
+    if (total) {
+      ctx.font = small;
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.fillText(total, x + 58 + lw + 6, y + h / 2 + 3);
+    }
 
     // Little grid icon hints that this opens the level menu.
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
@@ -1295,7 +1308,95 @@
     for (let r = 0; r < 3; r++) {
       for (let c = 0; c < 3; c++) ctx.fillRect(gx + c * 7, y + h / 2 - 10 + r * 7, 5, 5);
     }
-    buttons.push({ name: 'home', x, y, w, h });
+    if (list) list.push({ name: 'home', x, y, w, h });
+  }
+
+  // Upright badge for the narrow left column on phones: planet on top, level number below.
+  const TALL_W = 64;
+  const TALL_H = 92;
+  function drawTallBadge(x, y) {
+    ctx.fillStyle = 'rgba(10,12,30,0.7)';
+    roundRect(x, y, TALL_W, TALL_H, 22);
+    ctx.fill();
+    drawPlanet(S.levelIndex, x + TALL_W / 2, y + 30, 17, false, false);
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 26px "Trebuchet MS", Verdana, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`${S.levelIndex + 1}`, x + TALL_W / 2, y + 70);
+    ctx.textAlign = 'left';
+  }
+
+  // Bottom-center of the game (keyboard and mouse).
+  function drawBottomBadge() {
+    const { w } = badgeLayout(false);
+    drawLevelBadge(canvas.width / 2 - w / 2, canvas.height - BADGE_H - 6, false, buttons);
+  }
+
+  // ---------- Touch-screen HUD ----------
+  // On touch screens the buttons and the badge move off the level into their own canvas, which
+  // js/touch.js places in the bar below the game (mode 'row') or the left column (mode 'column').
+  // It draws in CSS pixels; `free` is how much of a row is clear of the round "go" button.
+  let hud = null;
+  const hudButtons = [];
+
+  function setHud(c, opts) {
+    if (!c) { hud = null; return; }
+    const dpr = window.devicePixelRatio || 1;
+    c.width = Math.round(opts.w * dpr);
+    c.height = Math.round(opts.h * dpr);
+    hud = Object.assign({ canvas: c, ctx: c.getContext('2d'), dpr, free: opts.w }, opts);
+  }
+
+  function drawHud(withBadge) {
+    hudButtons.length = 0;
+    if (!hud) return;
+    const main = ctx;
+    ctx = hud.ctx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, hud.canvas.width, hud.canvas.height);
+    ctx.setTransform(hud.dpr, 0, 0, hud.dpr, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    const { w, h } = hud;
+    const s = 48;
+    const gap = 12;
+    const names = hudButtonNames();
+    let bx;
+    let by;
+    let room;
+    if (hud.mode === 'column') {
+      names.forEach((name, i) => drawHudButton(name, (w - s) / 2, 12 + i * (s + gap), s, hudButtons));
+    } else {
+      names.forEach((name, i) => drawHudButton(name, 8 + i * (s + gap), (h - s) / 2, s, hudButtons));
+      room = hud.free - (8 + names.length * (s + gap) + 4);
+    }
+    if (withBadge && hud.mode === 'column') {
+      const sc = Math.min(1, (w - 8) / TALL_W);
+      bx = (w - TALL_W * sc) / 2;
+      by = h - TALL_H * sc - 12;
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(sc, sc);
+      drawTallBadge(0, 0);
+      ctx.restore();
+      hudButtons.push({ name: 'home', x: bx, y: by, w: TALL_W * sc, h: TALL_H * sc });
+    } else if (withBadge) {
+      // Full badge if it fits, else the compact one, shrunk if it still doesn't fit.
+      const compact = badgeLayout(false).w > room;
+      const bw = badgeLayout(compact).w;
+      const sc = Math.min(1, room / bw);
+      // Centered under the game when there's room, otherwise just right of the buttons.
+      const left = hud.free - room;
+      bx = Math.max(left, Math.min(hud.free - bw * sc, w / 2 - (bw * sc) / 2));
+      by = (h - BADGE_H * sc) / 2;
+      ctx.save();
+      ctx.translate(bx, by);
+      ctx.scale(sc, sc);
+      drawLevelBadge(0, 0, compact, null);
+      ctx.restore();
+      hudButtons.push({ name: 'home', x: bx, y: by, w: bw * sc, h: BADGE_H * sc });
+    }
+    ctx = main;
   }
 
   // ---------- Screens ----------
@@ -1969,19 +2070,12 @@
   function draw() {
     ctx.imageSmoothingEnabled = false;
     buttons.length = 0;
-    if (S.screen === 'title') {
-      drawTitle();
-      drawButtons();
-      return;
-    }
-    if (S.screen === 'menu') {
-      drawMenu();
-      drawButtons();
-      return;
-    }
-    if (S.screen === 'win') {
-      drawWin();
-      drawButtons();
+    if (S.screen === 'title' || S.screen === 'menu' || S.screen === 'win') {
+      if (S.screen === 'title') drawTitle();
+      else if (S.screen === 'menu') drawMenu();
+      else drawWin();
+      if (hud) drawHud(false);
+      else drawButtons();
       return;
     }
     // Crystals glow while a beam hits them.
@@ -2019,8 +2113,10 @@
     drawDarkness();
     drawGoalPointer();
     drawInventory();
-    drawLevelBadge();
-    drawButtons();
+    if (!hud) {
+      drawBottomBadge();
+      drawButtons();
+    }
 
     let fade = S.fadeIn / 0.5;
     if (S.screen === 'exit') fade = Math.max(0, (S.exitT - (G.Game.EXIT_DUR - 0.5)) / 0.5);
@@ -2028,14 +2124,19 @@
       ctx.fillStyle = `rgba(7,9,22,${Math.min(1, fade)})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    drawHud(true);
   }
+
+  const hit = (list, x, y) => {
+    const b = list.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+    return b ? b.name : null;
+  };
 
   G.Render = {
     init,
     draw,
-    hitButton(x, y) {
-      const b = buttons.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
-      return b ? b.name : null;
-    },
+    setHud,
+    hitButton: (x, y) => hit(buttons, x, y),
+    hitHud: (x, y) => hit(hudButtons, x, y),
   };
 })(window.Game = window.Game || {});

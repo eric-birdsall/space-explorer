@@ -18,14 +18,26 @@
 <body>
   <canvas id="game" width="960" height="640"></canvas>
 
-  <!-- Touch controls: only shown on touch screens (see css/style.css and js/touch.js) -->
+  <!-- Touch controls: only shown on touch screens (see css/style.css and js/touch.js).
+       js/touch.js places them: a bar below the game on iPads, side columns on phones.
+       The HUD canvas holds the home / sound / restart buttons and the level badge. -->
   <div id="controls" aria-hidden="true">
+    <canvas id="hud"></canvas>
     <button id="action" type="button"></button>
+    <!-- Round arrow pad: one base with four wedges and a hub that leans the way you press. -->
     <div id="dpad">
-      <div class="arrow" data-key="ArrowUp"></div>
-      <div class="arrow" data-key="ArrowLeft"></div>
-      <div class="arrow" data-key="ArrowRight"></div>
-      <div class="arrow" data-key="ArrowDown"></div>
+      <svg viewBox="0 0 200 200">
+        <circle class="pad-shadow" cx="100" cy="104" r="95"/>
+        <circle class="pad-base" cx="100" cy="100" r="95"/>
+        <!-- The four wedges are filled in by js/touch.js (same shape, rotated). -->
+        <g class="wedges"></g>
+        <g class="hub">
+          <circle class="hub-shadow" cx="100" cy="103" r="26"/>
+          <circle class="hub-top" cx="100" cy="100" r="26"/>
+          <circle class="hub-dot" cx="100" cy="100" r="9"/>
+        </g>
+        <circle class="pad-hit" cx="100" cy="100" r="99"/>
+      </svg>
     </div>
   </div>
 
